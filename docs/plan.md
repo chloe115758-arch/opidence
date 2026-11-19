@@ -33,9 +33,9 @@ PRD 6번의 "뺀다" 항목(음성 변환, 다국어, 드래그 보드, 다른 �
 
 ### 2단계 — Supabase 연결
 
-- 파일: `supabase/migrations/0001_init.sql`, `lib/supabase/server.ts`, `lib/supabase/client.ts`, `proxy.ts`(세션 갱신), `lib/transcript.ts`(+테스트: 파싱·형식 검사·개인정보 검사), `app/actions.ts`(업로드, 삭제, 샘플 불러오기), `docs/db.md`, `.env.example`
+- 파일: `supabase/migrations/0001_init.sql`, `lib/supabase/server.ts`, `proxy.ts`(세션 갱신), `lib/transcript.ts`(+테스트: 파싱·형식 검사·개인정보 검사), `lib/store.ts`(저장·조회), `app/actions.ts`(업로드, 삭제, 샘플 불러오기), `components/Upload.tsx`(업로드 입력, 실행 버튼), `app/error.tsx`(다시 시도 화면), `docs/db.md`, `.env.example`
 - 샘플 불러오기는 `data/interviews/`의 8건을 일반 업로드와 같은 검사·저장 경로로 넣는다.
-- 확인: 샘플 버튼 → 목록 8건(A는 발언 16개 중 참가자 8개). Table Editor에 발언 116행(참가자 58행). 시크릿 창에서는 빈 작업 공간. 11번째 업로드는 막힘.
+- 확인: 샘플 버튼 → 목록 8건(A는 발언 16개 중 참가자 8개). Table Editor에 발언 114행(참가자 57행). 시크릿 창에서는 빈 작업 공간. 11번째 업로드는 막힘.
 
 ### 3단계 — 주제 묶음
 
@@ -57,7 +57,9 @@ PRD 6번의 "뺀다" 항목(음성 변환, 다국어, 드래그 보드, 다른 �
 
 ### 6단계 — 상태 화면과 방어
 
-- 파일: 화면별 `loading.tsx`, `app/error.tsx`(다시 시도), 업로드 상태(빈 상태, 업로드 중, 형식 오류, 개인정보 경고), 작은 화면·긴 텍스트, `data/test/`(빈 파일, 제한 초과, 가짜 연락처)
+- 파일: 화면별 `loading.tsx`, `app/error.tsx`(2단계에서 만든 것을 다듬는다), 업로드 상태(빈 상태, 업로드 중, 형식 오류, 개인정보 경고), 작은 화면·긴 텍스트, `data/test/`(빈 파일, 제한 초과, 가짜 연락처)
+- 전사본·발언 저장을 한 번에 처리한다: 지금은 요청 두 번이라 발언 저장이 실패하면 전사본을 지워 되돌린다(`lib/store.ts`의 `shortcut:` 주석). DB 함수 하나(rpc)로 합쳐 한 트랜잭션으로 만들고, 마이그레이션과 `docs/db.md`를 함께 고친다.
+- 성공 메시지 강조: 업로드 성공 문구("참가자 A 전사본을 저장했습니다")가 아래 안내문과 구분되지 않는다. 눈에 띄게 표시한다.
 - 확인(PRD 8번): 빈 파일, 제한 초과, 가짜 연락처, 전사본에 없는 질문, 키 누락, 시크릿 창 접근 차단.
 
 ### 7단계 — 배포

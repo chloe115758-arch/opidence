@@ -25,6 +25,10 @@ export default async function Ask({ searchParams }: { searchParams: Promise<{ q?
 
   return (
     <div className="space-y-8">
+      {/* 5단계에서 실제 데이터로 바꾸면 이 줄을 지운다 */}
+      <p className="rounded-md bg-gray-100 px-4 py-2 text-center text-xs text-gray-500">
+        이 화면은 아직 가짜 데이터(도서관 좌석 예약 앱)입니다. 올린 전사본과 연결되지 않았습니다.
+      </p>
       <div>
         <h1 className="text-2xl font-semibold">질문·답변</h1>
         <p className="mt-2 text-gray-600">전사본에 있는 내용만 답합니다. 근거를 찾지 못하면 찾지 못했다고 알려 드립니다.</p>

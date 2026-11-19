@@ -1,4 +1,4 @@
-// 1단계 화면 뼈대용 가짜 데이터. 2단계에서 Supabase로 바꾸면서 이 파일을 지운다.
+// 화면 뼈대용 가짜 데이터. 전사본 화면은 DB로 바꿨고, 주제 묶음·질문 화면이 아직 쓴다. 5단계까지 연결하면 이 파일을 지운다.
 // 실제 인터뷰(공공자전거)와 다른 주제로 만들었다: 실제 묶음 예시를 미리 보면 기준선 측정이 흐려진다.
 import { checkEvidence } from "./evidence";
 import type { AnswerSentence, Insight, Transcript, Utterance } from "./types";

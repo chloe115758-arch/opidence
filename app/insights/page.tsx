@@ -4,6 +4,10 @@ import { check, insights } from "@/lib/mock";
 export default function Insights() {
   return (
     <div className="space-y-10">
+      {/* 3단계에서 실제 데이터로 바꾸면 이 줄을 지운다 */}
+      <p className="rounded-md bg-gray-100 px-4 py-2 text-center text-xs text-gray-500">
+        이 화면은 아직 가짜 데이터(도서관 좌석 예약 앱)입니다. 올린 전사본과 연결되지 않았습니다.
+      </p>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">주제 묶음</h1>

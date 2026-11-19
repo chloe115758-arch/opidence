@@ -23,10 +23,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </Suspense>
           </div>
         </header>
-        {/* 2단계에서 실제 데이터로 바꾸면 이 줄을 지운다 */}
-        <p className="bg-gray-100 px-6 py-2 text-center text-xs text-gray-500">
-          화면 뼈대입니다. 지금 보이는 내용은 가짜 데이터(도서관 좌석 예약 앱)입니다.
-        </p>
         <main className="mx-auto max-w-5xl px-6 py-10">{children}</main>
       </body>
     </html>

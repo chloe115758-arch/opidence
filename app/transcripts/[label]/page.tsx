@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
-import { transcripts } from "@/lib/mock";
+import { transcripts as mockTranscripts } from "@/lib/mock";
+import { getTranscript } from "@/lib/store";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function TranscriptPage({
   params,
@@ -10,7 +12,10 @@ export default async function TranscriptPage({
 }) {
   const { label } = await params;
   const { u: highlighted } = await searchParams;
-  const transcript = transcripts.find((t) => t.label === label);
+  // 주제 묶음·질문 화면이 아직 가짜 데이터(X·Y)를 가리킨다. 그 화면을 DB에 연결하는 4단계에서 뒤쪽 대안을 지운다.
+  const transcript =
+    (/^[A-Z]$/.test(label) ? await getTranscript(await createClient(), label) : null) ??
+    mockTranscripts.find((t) => t.label === label);
   if (!transcript) notFound();
 
   return (
