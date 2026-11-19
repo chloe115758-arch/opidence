@@ -72,8 +72,19 @@ export const insights: Insight[] = [
 
 export function mockAnswer(question: string): AnswerSentence[] {
   if (question.includes("식당")) return [];
+  // 긴 답변 예시: 휴대폰 화면에서 문장과 원문 카드가 얼마나 멀어지는지 보려고 둔다
+  if (question.includes("정리"))
+    return [
+      { text: "시험 기간에는 아침에 자리를 잡으려고 거의 매일 앱을 씁니다.", evidenceIds: ["X-02"] },
+      { text: "과제가 있을 때만 일주일에 두 번쯤 쓰는 경우도 있습니다.", evidenceIds: ["Y-02"] },
+      { text: "예약한 자리에 가 보니 다른 사람이 앉아 있던 경험이 있습니다.", evidenceIds: ["X-04"] },
+      { text: "그때는 말하기 민망해서 다른 자리를 다시 예약했습니다.", evidenceIds: ["X-06"] },
+      { text: "연장 버튼을 찾지 못해 자리가 풀렸고 알림도 오지 않았습니다.", evidenceIds: ["Y-04"] },
+      { text: "시간이 끝나기 10분 전에 알려 주기를 바랍니다.", evidenceIds: ["Y-08"] },
+    ];
   return [
     { text: "예약한 자리에 다른 사람이 앉아 있던 경험이 있습니다.", evidenceIds: ["X-04"] },
+    // Y-06(자리를 비운 사이 예약이 넘어감)은 이 문장을 뒷받침하지 않는다. 고치지 않는다: 사용성 테스트에서 잘못된 근거를 찾아내는지 보는 재료다(docs/plan.md).
     { text: "연장 버튼을 찾지 못해 자리가 풀린 경우도 있습니다.", evidenceIds: ["Y-04", "Y-06"] },
     { text: "대부분의 참가자가 앱을 삭제했습니다.", evidenceIds: ["Z-99"] },
     { text: "자리가 풀린 것이 가장 큰 문제로 꼽혔습니다.", evidenceIds: ["Y-05"] },

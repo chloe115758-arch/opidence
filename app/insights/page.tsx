@@ -1,35 +1,45 @@
+import { Button, ContentBadge, SectionMessage, Typography } from "@montage-ui/core";
 import { Quote } from "@/components/Quote";
 import { check, insights } from "@/lib/mock";
 
 export default function Insights() {
   return (
-    <div className="space-y-10">
-      {/* 3단계에서 실제 데이터로 바꾸면 이 줄을 지운다 */}
-      <p className="rounded-md bg-gray-100 px-4 py-2 text-center text-xs text-gray-500">
-        이 화면은 아직 가짜 데이터(도서관 좌석 예약 앱)입니다. 올린 전사본과 연결되지 않았습니다.
-      </p>
+    <div className="space-y-8">
+      {/* 3단계에서 실제 데이터로 바꾸면 이 안내를 지운다 */}
+      <SectionMessage variant="info">이 화면은 아직 가짜 데이터(도서관 좌석 예약 앱)입니다. 올린 전사본과 연결되지 않았습니다.</SectionMessage>
+
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">주제 묶음</h1>
-          <p className="mt-2 text-gray-600">비슷한 발언을 묶은 인사이트입니다. 인용을 누르면 원문 위치로 갑니다.</p>
+          <Typography as="h1" variant="title3" weight="bold" display="block">
+            주제 묶음
+          </Typography>
+          <p className="mt-2 text-fg-2">비슷한 발언을 묶은 인사이트입니다. 인용을 누르면 원문 위치로 갑니다.</p>
         </div>
         {/* 분석은 3단계에서 연결한다 */}
-        <button disabled className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white opacity-60">
+        <Button size="medium" disabled>
           분석하기
-        </button>
+        </Button>
       </div>
 
       {insights.map((insight) => {
         const verified = insight.evidenceIds.filter((id) => check(id).status === "verified").length;
         return (
-          <section key={insight.id} className="rounded-xl border border-gray-200 bg-white p-6">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-lg font-medium">{insight.title}</h2>
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${verified ? "bg-accent-soft text-accent" : "bg-gray-100 text-gray-600"}`}>
-                {verified ? `근거 ${verified}개` : "근거 없음"}
-              </span>
+          <section key={insight.id} className="rounded-2xl border border-line bg-surface p-6">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Typography as="h2" variant="headline1" weight="bold">
+                {insight.title}
+              </Typography>
+              {verified ? (
+                <ContentBadge size="small" variant="solid" color="accent" accentColor="semantic.foreground.brand.primary">
+                  근거 {verified}개
+                </ContentBadge>
+              ) : (
+                <ContentBadge size="small" variant="outlined" color="neutral">
+                  근거 없음
+                </ContentBadge>
+              )}
             </div>
-            <p className="mt-2 text-gray-600">{insight.summary}</p>
+            <p className="mt-2 text-fg-2">{insight.summary}</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               {insight.evidenceIds.map((id) => (
                 <Quote key={id} id={id} />

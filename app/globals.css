@@ -1,7 +1,25 @@
 @import "tailwindcss";
+/* Montage(원티드 디자인 시스템)의 색·글자·그림자 값. 레이어에 넣어야 Tailwind 클래스가 덮어쓸 수 있다.
+   reset.css는 불러오지 않는다: Tailwind 기본 초기화와 겹치고, 레이어 밖에 두면 여백 클래스를 지운다. */
+@import "@montage-ui/core/theme.css" layer(base);
 
-/* 강조색은 이 두 값만 바꾸면 전체에 적용된다. 나머지는 Tailwind 회색 계열만 쓴다. */
-@theme {
-  --color-accent: #4f46e5;
-  --color-accent-soft: #eef2ff;
+/* Montage 컴포넌트가 없는 부분(인용 카드, 원문 발언 줄, 패널)은 아래 이름으로 같은 값을 쓴다. */
+@theme inline {
+  --font-sans: "Pretendard JP", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --color-accent: var(--semantic-foreground-brand-primary);
+  --color-accent-soft: var(--semantic-surface-brand-subtle);
+  --color-accent-line: var(--semantic-line-brand-primary);
+  --color-fg: var(--semantic-foreground-neutral-primary);
+  --color-fg-2: var(--semantic-foreground-neutral-secondary);
+  --color-fg-3: var(--semantic-foreground-neutral-tertiary);
+  --color-surface: var(--semantic-surface-neutral-primary);
+  --color-fill: var(--semantic-surface-neutral-tertiary);
+  --color-line: var(--semantic-line-neutral-secondary);
+  --color-line-strong: var(--semantic-line-neutral-primary);
+  --shadow-card: var(--semantic-elevation-shadow-normal-xsmall);
+}
+
+/* Montage 탭은 선택하지 않은 항목을 아주 옅게(대비 약 1.6:1) 그린다. 주 메뉴는 읽혀야 해서 한 단계 진한 글자색으로 올린다. */
+nav[aria-label] [aria-selected="false"] [data-role="tab-list-item-text"] {
+  color: var(--semantic-foreground-neutral-secondary);
 }

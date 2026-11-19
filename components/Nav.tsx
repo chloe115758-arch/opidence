@@ -1,5 +1,6 @@
 "use client";
 
+import { Tab, TabList, TabListItem } from "@montage-ui/core";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -11,22 +12,19 @@ const items = [
 
 export function Nav() {
   const pathname = usePathname();
+  // 근거 보기(/transcripts/…)는 전사본 메뉴에 속한다
+  const active = items.findLast(({ href }) => pathname.startsWith(href))!.href;
   return (
-    <nav className="flex gap-1 text-sm">
-      {items.map(({ href, label }) => {
-        // 근거 보기(/transcripts/…)는 전사본 메뉴에 속한다
-        const active = href === "/" ? pathname === "/" || pathname.startsWith("/transcripts") : pathname.startsWith(href);
-        return (
-          <Link
-            key={href}
-            href={href}
-            aria-current={active ? "page" : undefined}
-            className={`rounded-md px-3 py-1.5 ${active ? "bg-accent-soft font-medium text-accent" : "text-gray-600 hover:text-gray-900"}`}
-          >
-            {label}
-          </Link>
-        );
-      })}
+    <nav aria-label="주 메뉴">
+      <Tab value={active}>
+        <TabList size="medium" resize="hug">
+          {items.map(({ href, label }) => (
+            <TabListItem key={href} value={href} as={Link} href={href} aria-current={href === active ? "page" : undefined}>
+              {label}
+            </TabListItem>
+          ))}
+        </TabList>
+      </Tab>
     </nav>
   );
 }

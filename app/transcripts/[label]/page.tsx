@@ -1,3 +1,5 @@
+import { ContentBadge, Typography } from "@montage-ui/core";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { transcripts as mockTranscripts } from "@/lib/mock";
 import { getTranscript } from "@/lib/store";
@@ -19,30 +21,38 @@ export default async function TranscriptPage({
   if (!transcript) notFound();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">참가자 {transcript.label}</h1>
-        <p className="mt-2 text-gray-600">{transcript.meta}</p>
+        <Link href="/" className="text-sm font-medium text-fg-3 hover:text-fg">
+          ← 전사본 목록
+        </Link>
+        <Typography as="h1" variant="title3" weight="bold" display="block" sx={{ marginTop: 8 }}>
+          참가자 {transcript.label}
+        </Typography>
+        <p className="mt-2 break-words text-fg-2">{transcript.meta}</p>
       </div>
 
-      <ol className="space-y-1 rounded-xl border border-gray-200 bg-white p-3">
+      <ol className="space-y-1 rounded-2xl border border-line bg-surface p-3">
         {transcript.utterances.map((u) => {
           const on = u.id === highlighted;
+          const participant = u.role === "participant";
           return (
             // id는 인용 카드 링크(#A-04)가 스크롤할 위치다
             <li
               key={u.id}
               id={u.id}
-              className={`scroll-mt-6 rounded-lg border-l-4 px-4 py-3 ${on ? "border-accent bg-accent-soft" : "border-transparent"}`}
+              className={`scroll-mt-6 rounded-xl border-l-4 px-4 py-3 ${on ? "border-accent bg-accent-soft" : "border-transparent"}`}
             >
-              <p className="flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-3">
                 <span className="font-mono">{u.id}</span>
-                <span className={u.role === "participant" ? "font-medium text-gray-700" : ""}>
-                  {u.role === "participant" ? `참가자 ${u.label}` : "진행자"}
-                </span>
-                {on && <span className="rounded bg-accent px-1.5 py-0.5 font-medium text-white">인용된 발언</span>}
+                <span className={participant ? "font-semibold text-fg-2" : ""}>{participant ? `참가자 ${u.label}` : "진행자"}</span>
+                {on && (
+                  <ContentBadge size="xsmall" variant="solid" color="accent" accentColor="semantic.foreground.brand.primary">
+                    인용된 발언
+                  </ContentBadge>
+                )}
               </p>
-              <p className={`mt-1 break-words ${u.role === "participant" ? "text-gray-900" : "text-gray-500"}`}>{u.text}</p>
+              <p className={`mt-1 break-words ${participant ? "text-fg" : "text-fg-3"}`}>{u.text}</p>
             </li>
           );
         })}

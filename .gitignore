@@ -6,3 +6,7 @@ next-env.d.ts
 .DS_Store
 node_modules/
 .next/
+
+# Impeccable 스킬의 개인 설정과 임시 캐시
+.impeccable/*.local.json
+.impeccable/hook.*.json

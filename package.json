@@ -10,6 +10,8 @@
     "test": "node --test lib/*.test.mjs"
   },
   "dependencies": {
+    "@montage-ui/core": "^4.3.2",
+    "@montage-ui/nextjs": "^4.3.2",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.1",
     "next": "16.4.6",
