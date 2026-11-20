@@ -1,6 +1,7 @@
 import { ContentBadge, FallbackView, FallbackViewActionArea, FallbackViewContent, FallbackViewText, Typography } from "@montage-ui/core";
 import Link from "next/link";
 import { loadSamples, remove } from "@/app/actions";
+import { LogoMark } from "@/components/Logo";
 import { ActionButton, UploadForm } from "@/components/Upload";
 import { listTranscripts } from "@/lib/store";
 import { createClient } from "@/lib/supabase/server";
@@ -33,6 +34,7 @@ export default async function Home() {
         <section className="flex justify-center rounded-2xl border border-dashed border-line-strong px-5">
           <FallbackView padding="compact">
             <FallbackViewContent>
+              <LogoMark size={40} className="mx-auto mb-3" />
               <FallbackViewText
                 title="아직 전사본이 없습니다"
                 description="직접 올리거나, 가상 인터뷰 8건(공공자전거 앱 이용 경험)으로 바로 시작할 수 있습니다."

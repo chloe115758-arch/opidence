@@ -1,6 +1,7 @@
 import { ContentBadge, FallbackView, FallbackViewContent, FallbackViewText, Typography } from "@montage-ui/core";
 import Link from "next/link";
 import { Analyze } from "@/components/Analyze";
+import { LogoMark } from "@/components/Logo";
 import { Quote } from "@/components/Quote";
 import { listInsights, listTranscripts, remainingAnalyses } from "@/lib/store";
 import { createClient } from "@/lib/supabase/server";
@@ -25,6 +26,7 @@ export default async function Insights() {
         <section className="flex justify-center rounded-2xl border border-dashed border-line-strong px-5">
           <FallbackView padding="compact">
             <FallbackViewContent>
+              <LogoMark size={40} className="mx-auto mb-3" />
               {empty ? (
                 <FallbackViewText
                   title="전사본을 먼저 올려 주세요"

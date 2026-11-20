@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
+import { Logo } from "@/components/Logo";
 import { Nav } from "@/components/Nav";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
@@ -26,9 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Providers>
           <header className="border-b border-line bg-surface">
             <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-8 gap-y-1 px-5 pt-3 sm:px-6">
-              <Link href="/" className="pb-3 text-lg font-bold tracking-tight">
-                Opidence
-              </Link>
+              <Logo />
               <Suspense>
                 <Nav />
               </Suspense>
