@@ -1,7 +1,7 @@
-// 화면 뼈대용 가짜 데이터. 전사본 화면은 DB로 바꿨고, 주제 묶음·질문 화면이 아직 쓴다. 5단계까지 연결하면 이 파일을 지운다.
+// 화면 뼈대용 가짜 데이터. 전사본·주제 묶음 화면은 DB로 바꿨고, 질문 화면이 아직 쓴다. 5단계까지 연결하면 이 파일을 지운다.
 // 실제 인터뷰(공공자전거)와 다른 주제로 만들었다: 실제 묶음 예시를 미리 보면 기준선 측정이 흐려진다.
 import { checkEvidence } from "./evidence";
-import type { AnswerSentence, Insight, Transcript, Utterance } from "./types";
+import type { AnswerSentence, Transcript, Utterance } from "./types";
 
 // 홀수 줄은 진행자, 짝수 줄은 참가자
 function lines(label: string, texts: string[]): Utterance[] {
@@ -48,28 +48,7 @@ export const transcripts: Transcript[] = [
 const allUtterances = transcripts.flatMap((t) => t.utterances);
 export const check = (id: string) => checkEvidence(id, allUtterances);
 
-// Y-05는 진행자 발언, Z-99는 없는 ID: "근거 없음" 상태를 보려고 일부러 넣었다.
-export const insights: Insight[] = [
-  {
-    id: "1",
-    title: "예약한 자리를 실제로 쓰지 못하는 경우가 있다",
-    summary: "예약이 되어 있어도 다른 사람이 앉아 있거나, 자리를 비운 사이 예약이 넘어간다.",
-    evidenceIds: ["X-04", "Y-06"],
-  },
-  {
-    id: "2",
-    title: "연장 방법과 종료 알림이 눈에 띄지 않는다",
-    summary: "연장 버튼을 찾지 못했고, 시간이 끝나기 전에 알려 주기를 바란다.",
-    evidenceIds: ["Y-04", "Y-08", "Y-05"],
-  },
-  {
-    id: "3",
-    title: "좌석 추천 기능을 원한다",
-    summary: "AI가 만든 묶음이지만 가리킨 발언이 원문에 없다.",
-    evidenceIds: ["Z-99"],
-  },
-];
-
+// 아래 답변의 Y-05는 진행자 발언, Z-99는 없는 ID다: "근거 없음" 상태를 보려고 일부러 넣었다.
 export function mockAnswer(question: string): AnswerSentence[] {
   if (question.includes("식당")) return [];
   // 긴 답변 예시: 휴대폰 화면에서 문장과 원문 카드가 얼마나 멀어지는지 보려고 둔다

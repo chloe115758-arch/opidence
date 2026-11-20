@@ -37,20 +37,27 @@ PRD 6번의 "뺀다" 항목(음성 변환, 다국어, 드래그 보드, 다른 �
 - 샘플 불러오기는 `data/interviews/`의 8건을 일반 업로드와 같은 검사·저장 경로로 넣는다.
 - 확인: 샘플 버튼 → 목록 8건(A는 발언 16개 중 참가자 8개). Table Editor에 발언 114행(참가자 57행). 시크릿 창에서는 빈 작업 공간. 11번째 업로드는 막힘.
 
-### 3단계 — 주제 묶음
+### 3단계 — 주제 묶음 + 원문 대조 (2026-11-19 범위 변경)
 
-- 파일: `prompts/묶음.md`, `lib/ai/cluster.ts`(서버 전용), `app/insights/actions.ts`, `app/insights/page.tsx`
-- AI에는 전체 발언을 ID·화자 표시와 함께 보내고 `{제목, 요약, 발언 ID 목록}`만 구조화 출력으로 받는다.
-- 확인: "분석하기" → 묶음 카드 생성, 근거 개수는 "대조 전"으로 표시.
+근거 테이블은 `status` 없이 저장할 수 없어서, 원래 4단계였던 원문 대조와 저장을 3단계에서 함께 한다.
 
-### 4단계 — 원문 대조
+- 파일: `supabase/migrations/0002_analysis.sql`, `supabase/migrations/0003_analysis_limit.sql`, `prompts/묶음.md`, `lib/cluster.ts`(+테스트: 응답 형식 검사, 보낼 글, 프롬프트 버전), `lib/ai/cluster.ts`(서버 전용, OpenAI 호출), `app/insights/actions.ts`, `app/insights/page.tsx`, `components/Analyze.tsx`, `lib/store.ts`, `docs/db.md`
+- AI에는 진행자·참가자 발언을 화자와 발언 ID를 붙여 보내고 `{title, summary, utterance_ids}`만 정해진 JSON 형식(최대 8개)으로 받는다. 형식이 틀리면 저장하지 않는다.
+- 받은 ID는 `lib/evidence.ts`로 대조한다: 참가자 발언과 정확히 일치하면 `verified`, 없으면 `not_found`, 진행자면 `moderator`. 고쳐 주지 않고 다시 묻지 않는다.
+- 다시 분석하면 기존 인사이트·근거를 지우고 새로 만든다(DB 함수 `replace_insights`, 한 트랜잭션).
+- 사용자당 하루 10회(한국 시간 자정 기준). OpenAI 응답이 온 분석은 저장에 실패해도 1회로 세고, 요청이 거부돼 응답이 없던 실패(모델 이름 오류, 형식 거부, 크레딧 부족)는 세지 않는다(`0003_analysis_limit.sql`). 화면에 "오늘 남은 분석 n회"를 보여 준다.
+- 분석 기록(`analysis_runs`)에 탈락한 ID와 이유, 근거 일치율 재료, 토큰 수, 걸린 시간을 남긴다. 4일차 실패 원인 분석에 쓴다.
+- 프롬프트는 `prompts/묶음.md`에 v1부터 쌓는다. 코드는 가장 아래 버전을 쓴다.
+- 확인: "분석하기" → 묶음 카드와 인용(DB 원문), 다시 분석하면 교체, 11번째는 막힘, 키가 없으면 안내.
 
-- 파일: `lib/evidence.ts`를 DB 조회와 연결, 저장 로직, `lib/ai/fixture.ts`(`MOCK_AI=1`이면 없는 ID·진행자 ID가 섞인 가짜 응답)
-- 확인: 인용이 원문 그대로 나오고 클릭하면 원문 위치로 이동. `MOCK_AI=1`에서 없는 ID와 진행자 ID가 "근거 없음"으로 표시.
+### 4단계 — 탈락 사례 강제 확인
+
+- 파일: `lib/ai/fixture.ts`(`MOCK_AI=1`이면 없는 ID·진행자 ID가 섞인 가짜 응답)
+- 확인: `MOCK_AI=1`에서 없는 ID와 진행자 ID가 "근거 없음"으로 표시되고 `analysis_runs.dropped`에 이유와 함께 남는다.
 
 ### 5단계 — 질문·답변 (RAG)
 
-- 파일: `supabase/migrations/0002_vector.sql`(pgvector, 임베딩 열, `match_utterances`), `lib/ai/embed.ts`, `prompts/근거.md`, `lib/ai/answer.ts`, `app/ask/page.tsx`
+- 파일: `supabase/migrations/0004_vector.sql`(pgvector, 임베딩 열, `match_utterances`), `lib/ai/embed.ts`, `prompts/근거.md`, `lib/ai/answer.ts`, `app/ask/page.tsx`
 - 흐름: 참가자 발언만 검색 → 답변 문장별 발언 ID → 4단계 대조 함수 → 근거 없는 문장은 숨김 처리.
 - 주의: 벡터 열의 차원은 임베딩 모델에 맞춰 정한다. `OPENAI_EMBEDDING_MODEL`을 차원이 다른 모델로 바꾸면 마이그레이션과 재임베딩이 필요하다.
 - 확인: 전사본에 있는 내용을 물으면 답 + 인용, 없는 내용을 물으면 "원문에서 근거를 찾지 못했습니다".
@@ -60,6 +67,7 @@ PRD 6번의 "뺀다" 항목(음성 변환, 다국어, 드래그 보드, 다른 �
 - 파일: 화면별 `loading.tsx`, `app/error.tsx`(2단계에서 만든 것을 다듬는다), 업로드 상태(빈 상태, 업로드 중, 형식 오류, 개인정보 경고), 작은 화면·긴 텍스트, `data/test/`(빈 파일, 제한 초과, 가짜 연락처)
 - 전사본·발언 저장을 한 번에 처리한다: 지금은 요청 두 번이라 발언 저장이 실패하면 전사본을 지워 되돌린다(`lib/store.ts`의 `shortcut:` 주석). DB 함수 하나(rpc)로 합쳐 한 트랜잭션으로 만들고, 마이그레이션과 `docs/db.md`를 함께 고친다.
 - ~~성공 메시지 강조~~: Montage 적용 때 초록 알림 상자(`SectionMessage`)로 바꿔 해결했다.
+- 개발 서버 경고 정리: `npm run dev` 터미널에 "`Date.now()` while prerendering"(`/`, `/insights`)와 "URL data during prerendering or a navigation"(`/ask`)이 반복해서 찍힌다. 화면은 정상으로 나오고 빌드도 통과한다. 화면별 `loading.tsx`/`<Suspense>`를 넣을 때 함께 없앤다.
 - 확인(PRD 8번): 빈 파일, 제한 초과, 가짜 연락처, 전사본에 없는 질문, 키 누락, 시크릿 창 접근 차단.
 
 ### 7단계 — 배포

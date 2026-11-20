@@ -10,13 +10,16 @@
     "test": "node --test lib/*.test.mjs"
   },
   "dependencies": {
+    "@langchain/core": "^1.4.2",
+    "@langchain/openai": "^1.8.4",
     "@montage-ui/core": "^4.3.2",
     "@montage-ui/nextjs": "^4.3.2",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.1",
     "next": "16.4.6",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",

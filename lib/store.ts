@@ -1,7 +1,8 @@
 // 전사본과 발언을 DB에 넣고 읽는다. 받은 클라이언트의 사용자 세션으로 접근하므로 RLS가 남의 행을 가린다.
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Checked } from "./evidence";
 import type { Parsed } from "./transcript";
-import type { Transcript } from "./types";
+import type { Transcript, Utterance } from "./types";
 
 export type TranscriptSummary = { label: string; meta: string; total: number; participant: number };
 
@@ -74,4 +75,73 @@ export async function getTranscript(db: SupabaseClient, label: string): Promise<
       text: u.text,
     })),
   };
+}
+
+// ───────────── 주제 묶음 ─────────────
+
+export const DAILY_ANALYSES = 10;
+
+export type StoredInsight = { id: string; title: string; summary: string; evidence: Checked[] };
+
+// 분석에 보낼 전사본 전체와, 발언 ID → DB 행 번호(근거를 연결할 때 쓴다).
+export async function loadForAnalysis(db: SupabaseClient): Promise<{ transcripts: Transcript[]; pk: Map<string, string> }> {
+  const { data, error } = await db
+    .from("transcripts")
+    .select("participant_label, meta, utterances(id, utterance_id, seq, speaker_role, text)")
+    .order("participant_label")
+    .order("seq", { referencedTable: "utterances" });
+  if (error) throw new Error(`전사본을 불러오지 못했습니다(${error.code}).`);
+  const pk = new Map<string, string>();
+  const transcripts = data.map((t) => ({
+    label: t.participant_label as string,
+    meta: t.meta as string,
+    utterances: t.utterances.map((u): Utterance => {
+      pk.set(u.utterance_id, u.id);
+      return { id: u.utterance_id, label: t.participant_label, seq: u.seq, role: u.speaker_role, text: u.text };
+    }),
+  }));
+  return { transcripts, pk };
+}
+
+// 저장된 인사이트. 인용 문장은 evidence에 없다: 연결된 발언(utterances)의 원문을 읽어 온다.
+export async function listInsights(db: SupabaseClient): Promise<StoredInsight[]> {
+  if (!(await signedIn(db))) return [];
+  const { data, error } = await db
+    .from("insights")
+    .select("id, title, summary, evidence(returned_id, status, position, utterances(utterance_id, seq, speaker_role, text))")
+    .order("position")
+    .order("position", { referencedTable: "evidence" });
+  if (error) throw new Error(`인사이트를 불러오지 못했습니다(${error.code}).`);
+  return data.map((i) => ({
+    id: i.id,
+    title: i.title,
+    summary: i.summary,
+    evidence: i.evidence.map((e): Checked => {
+      // 연결된 발언은 한 행뿐이다. 라이브러리 타입이 배열로 볼 때를 대비해 둘 다 받는다.
+      const u = (Array.isArray(e.utterances) ? e.utterances[0] : e.utterances) as
+        | { utterance_id: string; seq: number; speaker_role: Utterance["role"]; text: string }
+        | null
+        | undefined;
+      if (e.status !== "verified" || !u) return { id: e.returned_id, status: e.status === "moderator" ? "moderator" : "not_found" };
+      return {
+        id: e.returned_id,
+        status: "verified",
+        utterance: { id: u.utterance_id, label: u.utterance_id.split("-")[0], seq: u.seq, role: u.speaker_role, text: u.text },
+      };
+    }),
+  }));
+}
+
+// 오늘(한국 시간 자정 기준) 남은 분석 횟수. 실제 제한은 DB 트리거가 건다. 이 값은 화면 표시용이다.
+export async function remainingAnalyses(db: SupabaseClient): Promise<number> {
+  if (!(await signedIn(db))) return DAILY_ANALYSES;
+  const today = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10); // 한국은 서머타임이 없어 +9시간 고정
+  const { count, error } = await db
+    .from("analysis_runs")
+    .select("id", { count: "exact" }) // head: true로 세면 표가 없을 때도 오류 없이 넘어가서 쓰지 않는다
+    .gte("created_at", `${today}T00:00:00+09:00`)
+    .neq("status", "api_error") // OpenAI가 요청을 거부해 응답이 없던 실패는 세지 않는다(DB 트리거와 같은 기준)
+    .limit(1);
+  if (error) throw new Error(`분석 기록을 불러오지 못했습니다(${error.code}).`);
+  return Math.max(0, DAILY_ANALYSES - (count ?? 0));
 }

@@ -89,7 +89,7 @@ export default async function Ask({ searchParams }: { searchParams: Promise<{ q?
             <h2 className="text-sm font-semibold text-fg-2">인용 {cited.length}개</h2>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {cited.map((id) => (
-                <Quote key={id} id={id} />
+                <Quote key={id} checked={check(id)} />
               ))}
             </div>
           </div>
@@ -121,7 +121,7 @@ export default async function Ask({ searchParams }: { searchParams: Promise<{ q?
           <aside className="space-y-3 md:sticky md:top-6 md:-m-1 md:max-h-[calc(100dvh-3rem)] md:overflow-y-auto md:p-1">
             <h2 className="text-sm font-semibold text-fg-2">원문 {cited.length}개</h2>
             {cited.map((id, i) => (
-              <Quote key={id} id={id} n={i + 1} />
+              <Quote key={id} checked={check(id)} n={i + 1} />
             ))}
           </aside>
         </section>

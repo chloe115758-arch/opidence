@@ -1,12 +1,13 @@
 import { ContentBadge } from "@montage-ui/core";
 import Link from "next/link";
-import { check } from "@/lib/mock";
+import type { Checked } from "@/lib/evidence";
 
 // 인용 카드. 문장은 AI 출력이 아니라 저장된 원문에서 ID로 찾아 보여 준다.
+// checked는 원문 대조를 거친 결과다(lib/evidence.ts). 이 카드는 대조하지 않고 그 결과만 그린다.
 // n을 주면 B안의 번호가 붙고, 답변 문장의 번호 링크(#cite-n)가 이 카드를 가리킨다.
 // 번호를 눌러 선택된 카드(:target)만 굵은 테두리와 옅은 배경으로 강조한다. A안 카드에는 id가 없어 평소 모양 그대로다.
-export function Quote({ id, n }: { id: string; n?: number }) {
-  const checked = check(id);
+export function Quote({ checked, n }: { checked: Checked; n?: number }) {
+  const { id } = checked;
   const anchor = n ? `cite-${n}` : undefined;
 
   // "근거 없음"은 오류가 아니라 정상 상태다. 오류 색을 쓰지 않고 중립 색으로 둔다.
