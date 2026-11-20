@@ -19,7 +19,7 @@ export function Analyze({ remaining, disabled, hasInsights }: { remaining: numbe
   }, [pending]);
 
   const run = () => {
-    if (hasInsights && !window.confirm("다시 분석하면 지금 묶음과 근거를 지우고 새로 만듭니다. 계속할까요?")) return;
+    if (hasInsights && !window.confirm("다시 분석하면 지금 묶음과 근거를 지우고 새로 만듭니다. 분석할 때마다 묶음이 조금 달라질 수 있습니다. 계속할까요?")) return;
     setMessage(null);
     setSeconds(0);
     start(async () => {

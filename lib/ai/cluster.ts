@@ -4,9 +4,14 @@ import path from "node:path";
 import { ChatOpenAI } from "@langchain/openai";
 import { formatTranscripts, latestPrompt, responseFormat } from "@/lib/cluster";
 import type { Transcript } from "@/lib/types";
+import { mockClusters } from "./fixture";
 
 // 키와 모델 이름은 환경 변수에서만 읽는다. 코드에 모델 이름을 쓰지 않는다.
+// MOCK_AI=1이면 키 없이도 가짜 응답을 쓴다. 배포(production)에서는 무시한다.
+const mocking = () => process.env.MOCK_AI === "1" && process.env.NODE_ENV !== "production";
+
 export function aiConfig() {
+  if (mocking()) return { apiKey: "mock", model: "mock" };
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL;
   return apiKey && model ? { apiKey, model } : null;
@@ -21,6 +26,7 @@ export async function loadPrompt() {
 // AI를 한 번 부르고, 받은 것을 검사하지 않은 채 돌려준다. 형식 검사와 원문 대조는 부른 쪽에서 한다.
 // 형식에 맞지 않는 응답이면 output이 null이다. 호출 자체가 실패하면 예외를 던진다.
 export async function requestClusters(config: { apiKey: string; model: string }, promptText: string, transcripts: Transcript[]) {
+  if (mocking()) return mockClusters(transcripts);
   const llm = new ChatOpenAI({ apiKey: config.apiKey, model: config.model, timeout: 120_000, maxRetries: 1 });
   const { raw, parsed } = await llm
     .withStructuredOutput(responseFormat, { name: "clusters", method: "jsonSchema", strict: true, includeRaw: true })

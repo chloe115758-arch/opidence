@@ -20,7 +20,7 @@ export function Quote({ checked, n }: { checked: Checked; n?: number }) {
         <p className="mt-2 text-fg-2">
           {checked.status === "moderator"
             ? `진행자 발언(${id})은 근거로 쓰지 않습니다.`
-            : `AI가 가리킨 발언 ID(${id})가 원문에 없습니다.`}
+            : `AI가 연결한 발언(${id})을 원문에서 찾지 못했습니다.`}
         </p>
       </div>
     );

@@ -53,6 +53,9 @@ export default async function Insights() {
 
       {insights.map((insight) => {
         const verified = insight.evidence.filter((e) => e.status === "verified").length;
+        // 대표 인용: 원문 대조를 통과한 첫 근거. 없으면 첫 항목("근거 없음" 카드)을 보여 준다.
+        const lead = insight.evidence.find((e) => e.status === "verified") ?? insight.evidence[0];
+        const rest = insight.evidence.filter((e) => e !== lead);
         return (
           <section key={insight.id} className="rounded-2xl border border-line bg-surface p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -72,20 +75,25 @@ export default async function Insights() {
             <p className="mt-2 break-words text-fg-2">{insight.summary}</p>
             {insight.evidence.length === 0 ? (
               <p className="mt-5 rounded-xl border border-dashed border-line-strong bg-fill px-4 py-3 text-sm text-fg-2">
-                AI가 이 묶음에 발언 ID를 하나도 붙이지 않았습니다.
+                이 묶음에는 연결된 발언이 없습니다.
               </p>
             ) : (
-              <details className="group mt-5">
-                <summary className="cursor-pointer text-sm font-medium text-accent hover:underline">
-                  <span className="group-open:hidden">원문 인용 {insight.evidence.length}개 보기</span>
-                  <span className="hidden group-open:inline">원문 인용 접기</span>
-                </summary>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  {insight.evidence.map((e) => (
-                    <Quote key={e.id} checked={e} />
-                  ))}
-                </div>
-              </details>
+              <div className="mt-5 space-y-3">
+                <Quote checked={lead} />
+                {rest.length > 0 && (
+                  <details className="group">
+                    <summary className="cursor-pointer text-sm font-medium text-accent hover:underline">
+                      <span className="group-open:hidden">원문 인용 {rest.length}개 더 보기</span>
+                      <span className="hidden group-open:inline">접기</span>
+                    </summary>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      {rest.map((e) => (
+                        <Quote key={e.id} checked={e} />
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
             )}
           </section>
         );
