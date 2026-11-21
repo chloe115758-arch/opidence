@@ -4,6 +4,9 @@ import { Button, SectionMessage } from "@montage-ui/core";
 import { useEffect, useState, useTransition } from "react";
 import { analyze } from "@/app/insights/actions";
 
+// 이 초를 넘으면 "조금 더 걸리고 있어요"로 바꾼다.
+const SLOW_AFTER = 30;
+
 // 분석 버튼, 오늘 남은 횟수, 진행 문구, 실패 안내.
 // 호출이 한 번이라 중간 진행률은 알 수 없다. 고정 문구와 지난 시간만 보여 준다.
 export function Analyze({ remaining, disabled, hasInsights }: { remaining: number; disabled: boolean; hasInsights: boolean }) {
@@ -44,8 +47,12 @@ export function Analyze({ remaining, disabled, hasInsights }: { remaining: numbe
       </div>
       <div aria-live="polite">
         {pending && (
-          // 실측(analysis_runs.duration_ms): 15.6초, 17.8초(전사본 입력 약 4천 토큰). 전사본이 늘면 길어지므로 "안팎"으로 쓴다.
-          <SectionMessage variant="info">발언을 읽고 주제를 묶는 중입니다. 보통 20초 안팎으로 끝납니다 · {seconds}초 지남</SectionMessage>
+          // 실측(analysis_runs.duration_ms, 성공 3건): 15.6초~25.6초, 평균 19.7초. 출력이 길면 더 걸린다(25.6초는 출력 2,556토큰).
+          // 스크린 리더가 매초 읽지 않도록 초 표시는 aria-hidden으로 두고, 안내 문장만 읽게 한다.
+          <SectionMessage variant="info">
+            {seconds > SLOW_AFTER ? "조금 더 걸리고 있어요. 창을 닫지 말고 기다려 주세요." : "발언을 읽고 주제를 묶고 있습니다. 보통 15~30초 걸립니다."}{" "}
+            <span aria-hidden="true">· 분석하는 중… {seconds}초</span>
+          </SectionMessage>
         )}
         {message && !pending && <SectionMessage variant="negative">{message}</SectionMessage>}
       </div>

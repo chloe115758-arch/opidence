@@ -15,7 +15,7 @@ export default async function Home() {
         <Typography as="h1" variant="title3" weight="bold" display="block">
           전사본
         </Typography>
-        <p className="mt-2 text-fg-2">인터뷰 전사본을 올리면 발언 ID별로 나누어 저장합니다.</p>
+        <p className="mt-2 text-fg-2">인터뷰 전사본을 올리면 발언마다 번호를 붙여 저장합니다.</p>
       </div>
 
       <section className="rounded-2xl border border-line bg-surface p-6">
