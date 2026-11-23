@@ -4,12 +4,12 @@ import { Button, ContentBadge, FallbackView, FallbackViewContent, FallbackViewTe
 import { useEffect, useState, useTransition } from "react";
 import { ask, type AskResult } from "@/app/ask/actions";
 import { CiteLink } from "@/components/CiteLink";
+import { EXAMPLES } from "@/components/examples";
 import { Quote } from "@/components/Quote";
 import type { Checked } from "@/lib/evidence";
 
 const MAX_QUESTION = 200; // lib/answer.ts의 MAX_QUESTION과 같다(서버가 다시 검사한다). 서버 전용 모듈이 아니어도 클라이언트 번들에 넣지 않으려고 따로 둔다.
 const SLOW_AFTER = 30; // 이 초를 넘으면 "조금 더 걸리고 있어요"로 바꾼다.
-const examples = ["이용하면서 불편했던 점은 무엇인가요?", "가장 만족했던 경험은 무엇인가요?", "앞으로 바라는 점은 무엇인가요?"];
 
 // 입력, 남은 횟수, 진행 문구, 결과(위: 요약 문장, 아래: 찾은 발언).
 // view="a"이면 요약 문장 옆 번호를 숨긴다(사용성 테스트 비교용). 기본(B)은 문장 옆 번호가 아래 원문 카드를 가리킨다.
@@ -64,7 +64,7 @@ export function Search({ remaining, disabled, pendingIndex, view }: { remaining:
       <div className="space-y-2 text-sm">
         <p className="flex flex-wrap gap-x-3 gap-y-1 text-fg-3">
           예시:
-          {examples.map((x) => (
+          {EXAMPLES.map((x) => (
             <button key={x} type="button" className="font-medium text-accent hover:underline" onClick={() => setQuestion(x)}>
               {x}
             </button>

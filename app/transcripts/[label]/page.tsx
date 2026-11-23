@@ -1,23 +1,27 @@
 import { ContentBadge, Typography } from "@montage-ui/core";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTranscript } from "@/lib/store";
-import { createClient } from "@/lib/supabase/server";
+import { connection } from "next/server";
+import { ScrollToHash } from "@/components/ScrollToHash";
+import { getTranscriptByLabel } from "@/lib/data";
 
-export default async function TranscriptPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ label: string }>;
-  searchParams: Promise<{ u?: string }>;
-}) {
+type Props = { params: Promise<{ label: string }>; searchParams: Promise<{ u?: string }> };
+
+// 이 화면은 주소(params, searchParams)와 로그인 세션을 읽어야 그려지므로 "바로 보이는지" 검사(instant)는 건너뛴다.
+// 안쪽에 Suspense를 두지 않는 이유: 인용 카드의 #발언번호 링크가 앱 안 이동에서도 해당 발언으로 스크롤되려면 본문이
+// loading.tsx 경계 하나만 거쳐야 한다. 안쪽 Suspense를 두면 스크롤이 맨 위에 머문다(측정으로 확인). 경고 하나보다 근거로 가는 길이 먼저다.
+export const instant = false;
+
+export default async function TranscriptPage({ params, searchParams }: Props) {
+  await connection(); // 요청이 올 때 그리는 화면임을 알린다(로그인 세션 확인의 Date.now() 경고를 없앤다)
   const { label } = await params;
   const { u: highlighted } = await searchParams;
-  const transcript = /^[A-Z]$/.test(label) ? await getTranscript(await createClient(), label) : null;
+  const transcript = /^[A-Z]$/.test(label) ? await getTranscriptByLabel(label) : null;
   if (!transcript) notFound();
 
   return (
     <div className="space-y-6">
+      <ScrollToHash />
       <div>
         <Link href="/" className="text-sm font-medium text-fg-3 hover:text-fg">
           ← 전사본 목록

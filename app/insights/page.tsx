@@ -1,16 +1,15 @@
 import { ContentBadge, FallbackView, FallbackViewContent, FallbackViewText, Typography } from "@montage-ui/core";
 import Link from "next/link";
+import { connection } from "next/server";
+import { Suspense } from "react";
 import { Analyze } from "@/components/Analyze";
 import { LogoMark } from "@/components/Logo";
 import { Quote } from "@/components/Quote";
-import { listInsights, listTranscripts, remainingAnalyses } from "@/lib/store";
-import { createClient } from "@/lib/supabase/server";
+import { AnalyzeSkeleton, InsightListSkeleton } from "@/components/Skeletons";
+import { getInsights, getRemainingAnalyses, getTranscripts } from "@/lib/data";
 
-export default async function Insights() {
-  const db = await createClient();
-  const [transcripts, insights, remaining] = await Promise.all([listTranscripts(db), listInsights(db), remainingAnalyses(db)]);
-  const empty = transcripts.length === 0;
-
+// 제목과 설명은 바로 그리고, 로그인 세션을 확인하는 부분(분석 영역, 묶음 목록)은 각각 Suspense 안에서 읽는다.
+export default function Insights() {
   return (
     <div className="space-y-8">
       <div>
@@ -20,8 +19,29 @@ export default async function Insights() {
         <p className="mt-2 text-fg-2">비슷한 발언을 묶은 인사이트입니다. 인용을 누르면 원문 위치로 갑니다.</p>
       </div>
 
-      <Analyze remaining={remaining} disabled={empty} hasInsights={insights.length > 0} />
+      <Suspense fallback={<AnalyzeSkeleton />}>
+        <AnalyzeBox />
+      </Suspense>
+      <Suspense fallback={<InsightListSkeleton />}>
+        <InsightList />
+      </Suspense>
+    </div>
+  );
+}
 
+async function AnalyzeBox() {
+  await connection();
+  const [transcripts, insights, remaining] = await Promise.all([getTranscripts(), getInsights(), getRemainingAnalyses()]);
+  return <Analyze remaining={remaining} disabled={transcripts.length === 0} hasInsights={insights.length > 0} />;
+}
+
+async function InsightList() {
+  await connection();
+  const [transcripts, insights] = await Promise.all([getTranscripts(), getInsights()]);
+  const empty = transcripts.length === 0;
+
+  return (
+    <>
       {insights.length === 0 && (
         <section className="flex justify-center rounded-2xl border border-dashed border-line-strong px-5">
           <FallbackView padding="compact">
@@ -98,6 +118,6 @@ export default async function Insights() {
           </section>
         );
       })}
-    </div>
+    </>
   );
 }
