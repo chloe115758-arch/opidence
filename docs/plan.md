@@ -16,7 +16,7 @@ PRD 6번의 "뺀다" 항목(음성 변환, 다국어, 드래그 보드, 다른 �
 | 오류 문구 | 고치는 방법까지 알려 준다. 예: "화자는 '진행자' 또는 '참가자 A'처럼 써 주세요" |
 | 근거 없는 답변 문장 | 기본으로 숨기고, 답변 아래 "근거 없는 문장 n개 보기"를 펼치면 "근거 없음" 라벨과 함께 보여 준다 |
 | 디자인 | Montage(원티드 디자인 시스템, MIT) 컴포넌트 `@montage-ui/core`를 쓴다(2026-11-19 변경, Emotion 추가). 버튼·탭·알림·빈 상태·배지·입력은 Montage 컴포넌트, Montage에 없는 인용 카드·원문 발언 줄·패널은 Tailwind에 연결한 Montage 색 값(`app/globals.css`)으로 그린다. 원티드 로고와 `wanted` 로딩 애니메이션은 쓰지 않는다. "근거 없음"은 오류 색이 아니라 중립 색으로 둔다 |
-| 근거 표시 대안 | **B안(문장 옆 번호 + 옆 패널)을 기본으로 선택**(2026-11-19). 이유: 문장별 근거를 사용자가 직접 확인할 수 있고, 잘못 붙은 근거가 드러난다. A안(답변 아래 인용 모음)은 사용성 테스트 비교용으로 남긴다(`/ask?view=a`). 사용성 테스트로 최종 확정할 예정이다 |
+| 근거 표시 대안 | **B안(요약 문장 옆 번호 → 아래 원문 카드)을 기본으로 선택**(2026-11-19, 옆 고정 패널은 2026-11-23에 위아래 배치로 바뀜: 결정 6). 이유: 문장별 근거를 사용자가 직접 확인할 수 있고, 잘못 붙은 근거가 드러난다. A안(문장 옆 번호 없음)은 사용성 테스트 비교용으로 남긴다(`/ask?view=a`). 사용성 테스트로 최종 확정할 예정이다 |
 | 검색 · 찾기 기록 | 질문과 답변 문장은 저장하지 않는다. 횟수·토큰·시간·발언 번호 개수·탈락 번호만 `search_runs`에 남긴다(5단계 결정 기록 5번) |
 | 설계의도 파일 | 레포에 넣지 않는다. 프롬프트를 그 내용에 맞춰 고치지 않는다 |
 
@@ -74,7 +74,7 @@ PRD 6번의 "뺀다" 항목(음성 변환, 다국어, 드래그 보드, 다른 �
 
 ### 5단계 — 검색 · 찾기 (RAG)
 
-- 파일: `supabase/migrations/0004_search.sql`(pgvector, `utterance_embeddings`, `match_utterances`, `search_runs`와 하루 30회 제한), `lib/ai/embed.ts`, `prompts/근거.md`, `lib/ai/answer.ts`, `app/ask/actions.ts`(서버 액션), `app/ask/page.tsx`, `lib/ai/fixture.ts`(검색용 `MOCK_AI` 응답)
+- 파일: `supabase/migrations/0004_search.sql`(pgvector, `utterance_embeddings`, `match_utterances`, `search_runs`와 하루 30회 제한), `lib/ai/embed.ts`, `prompts/근거.md`, `lib/ai/answer.ts`, `app/ask/actions.ts`(서버 액션), `app/ask/page.tsx`, `components/Search.tsx`, `lib/ai/fixture.ts`(검색용 `MOCK_AI` 응답)
 - 흐름: 참가자 발언만 검색 → 답변 문장별 발언 ID → 4단계 대조 함수 → 근거 없는 문장은 숨김 처리.
 - 주의: 벡터 열의 차원은 임베딩 모델에 맞춰 정한다. `OPENAI_EMBEDDING_MODEL`을 차원이 다른 모델로 바꾸면 마이그레이션과 재임베딩이 필요하다.
 - 확인: 전사본에 있는 내용을 물으면 답 + 인용, 없는 내용을 물으면 "원문에서 근거를 찾지 못했습니다".

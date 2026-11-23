@@ -7,7 +7,3 @@ export type Utterance = {
 };
 
 export type Transcript = { label: string; meta: string; utterances: Utterance[] };
-
-// AI가 돌려주는 것은 발언 ID뿐이다. 인용 문장은 여기에 담지 않는다.
-export type Insight = { id: string; title: string; summary: string; evidenceIds: string[] };
-export type AnswerSentence = { text: string; evidenceIds: string[] };
