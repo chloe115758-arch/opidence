@@ -3,7 +3,9 @@
 import { Button, SectionMessage, TextButton } from "@montage-ui/core";
 import { useRef, useState, useTransition, type ReactNode } from "react";
 import { refreshAfterUpload, upload } from "@/app/actions";
-import { byName, runBatch, type BatchInput, type BatchResult } from "@/lib/batch";
+import { SpeakerConfirm } from "@/components/SpeakerConfirm";
+import { byName, runBatch, type AskRoles, type BatchInput, type BatchResult } from "@/lib/batch";
+import type { Roles } from "@/lib/speakers";
 import { describeNotes, MAX_CHARS, TOO_LONG_FACT, parseTranscript, type Problem } from "@/lib/transcript";
 
 const SHOWN = 10;
@@ -65,11 +67,12 @@ function UploadResult({ outcome, onClose }: { outcome: BatchResult; onClose: () 
 
   const saved = outcome.items.filter((x) => x.status === "saved");
   const failed = outcome.items.filter((x) => x.status === "failed");
+  const skipped = outcome.items.filter((x) => x.status === "skipped");
   return (
     <div className="space-y-3">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <SectionMessage variant={failed.length === 0 ? "positive" : saved.length === 0 ? "negative" : "cautionary"}>{outcome.summary}</SectionMessage>
+          <SectionMessage variant={failed.length === 0 && skipped.length === 0 ? "positive" : saved.length === 0 && failed.length > 0 ? "negative" : "cautionary"}>{outcome.summary}</SectionMessage>
         </div>
         {close}
       </div>
@@ -95,6 +98,18 @@ function UploadResult({ outcome, onClose }: { outcome: BatchResult; onClose: () 
           </ul>
         </section>
       )}
+      {skipped.length > 0 && (
+        <section>
+          <h3 className="text-sm font-semibold text-fg-2">건너뛴 파일 {skipped.length}개</h3>
+          <ul className="mt-2 space-y-1 text-sm">
+            {skipped.map((f) => (
+              <li key={f.name} className="break-words text-fg-2">
+                <span className="break-all font-medium text-fg">{f.name}</span> · 건너뛰었어요. 아무것도 저장하지 않았어요.
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {saved.length > 0 && (
         <details open={saved.length <= 5} className="text-sm">
           <summary className="cursor-pointer text-fg-2">저장한 파일 {saved.length}개</summary>
@@ -113,12 +128,21 @@ function UploadResult({ outcome, onClose }: { outcome: BatchResult; onClose: () 
   );
 }
 
+// 첫 확인 화면에서만, 먼저 저장한 파일과 확인할 파일 수를 알린다.
+function confirmNotice({ position, total, savedSoFar }: AskRoles): string | undefined {
+  if (position !== 1) return undefined;
+  if (savedSoFar > 0) return `역할이 적힌 파일 ${savedSoFar}건을 먼저 저장했어요. 화자를 확인할 파일은 ${total}건이에요.`;
+  return total > 1 ? `화자를 확인할 파일은 ${total}건이에요.` : undefined;
+}
+
 // 여러 파일을 고르거나 끌어다 놓아 올린다. 정상 파일은 저장하고 나머지는 이유와 함께 알려 준다(규칙: lib/batch.ts).
 export function UploadForm({ remaining }: { remaining: number }) {
   const input = useRef<HTMLInputElement>(null);
   const [outcome, setOutcome] = useState<BatchResult | null>(null);
   const [progress, setProgress] = useState<{ current: number; total: number; name: string } | null>(null);
   const [dragging, setDragging] = useState(false);
+  // 화자 확인 중인 파일. 사용자가 역할을 고르거나 건너뛰면 resolve로 runBatch에 답을 돌려준다.
+  const [asking, setAsking] = useState<{ ask: AskRoles; resolve: (roles: Roles | null) => void } | null>(null);
   const [pending, start] = useTransition();
 
   function handle(list: FileList | null) {
@@ -131,6 +155,17 @@ export function UploadForm({ remaining }: { remaining: number }) {
         const result = await runBatch(inputs, remaining, {
           parse: (raw, roles) => parseTranscript(raw, "A", roles), // 서버로 보내기 전에 같은 검사를 먼저 한다. 서버도 다시 검사한다.
           save: upload,
+          askRoles: (ask) =>
+            new Promise<Roles | null>((resolve) =>
+              setAsking({
+                ask,
+                resolve: (roles) => {
+                  setAsking(null);
+                  setProgress({ current: files.length - ask.total + ask.position, total: files.length, name: ask.name });
+                  resolve(roles);
+                },
+              }),
+            ),
           onProgress: (current, total, name) => setProgress({ current, total, name }),
         });
         setOutcome(result);
@@ -177,7 +212,20 @@ export function UploadForm({ remaining }: { remaining: number }) {
         txt 파일 선택
       </Button>
       <div aria-live="polite" className="mt-3 w-full text-left">
-        {pending && (
+        {asking && (
+          <SpeakerConfirm
+            // 파일이 바뀌면 고른 역할이 남지 않게 새로 그린다
+            key={asking.ask.name}
+            title={asking.ask.name}
+            progress={asking.ask.total > 1 ? `${asking.ask.position}/${asking.ask.total}` : undefined}
+            notice={confirmNotice(asking.ask)}
+            speakers={asking.ask.confirm.speakers}
+            defaults={asking.ask.confirm.defaults}
+            onSave={(roles) => asking.resolve(roles)}
+            onSkip={() => asking.resolve(null)}
+          />
+        )}
+        {pending && !asking && (
           <p className="text-center text-sm text-fg-3">
             {progress ? `${progress.current}/${progress.total} 저장 중 · ${progress.name}` : "파일을 읽는 중…"}
           </p>

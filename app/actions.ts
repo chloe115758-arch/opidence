@@ -5,6 +5,7 @@ import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { listTranscripts, saveTranscript } from "@/lib/store";
+import type { Roles } from "@/lib/speakers";
 import { MAX_CHARS, TOO_LONG_FACT, parseForSave, parseTranscript, type Problem } from "@/lib/transcript";
 
 // 모든 액션은 문제 목록을 돌려준다. 빈 배열이면 성공이다.
@@ -22,8 +23,8 @@ async function workspace() {
 export type UploadResult = { problems: Problem[]; label?: string };
 
 // 업로드와 샘플 불러오기가 함께 쓰는 검사·저장 경로. 브라우저에서 검사했어도 여기서 다시 검사한다.
-async function save(raw: string): Promise<UploadResult> {
-  const first = parseTranscript(raw);
+async function save(raw: string, roles?: Roles): Promise<UploadResult> {
+  const first = parseTranscript(raw, "A", roles);
   if (!first.ok) return { problems: first.problems }; // 형식이 틀리면 작업 공간(익명 사용자)도 만들지 않는다
   const db = await workspace();
   if (!db) return { problems: [{ message: "작업 공간을 만들지 못했어요. 잠시 뒤 다시 시도해 주세요." }] };
@@ -31,7 +32,7 @@ async function save(raw: string): Promise<UploadResult> {
   // 라벨이 없는 파일은 지금 올라가 있는 라벨 중 비어 있는 글자를 붙인다. 동시에 올려 같은 글자를 잡으면 한 번 더 시도한다.
   for (let attempt = 0; ; attempt++) {
     const used = first.autoLabel ? (await listTranscripts(db)).map((t) => t.label) : [];
-    const parsed = parseForSave(raw, used);
+    const parsed = parseForSave(raw, used, roles);
     if (!parsed.ok) return { problems: parsed.problems };
     const failure = await saveTranscript(db, parsed);
     if (!failure) return { problems: [], label: parsed.label };
@@ -39,10 +40,21 @@ async function save(raw: string): Promise<UploadResult> {
   }
 }
 
-export async function upload(text: string): Promise<UploadResult> {
+// 화면이 보낸 화자 역할(화자 확인에서 고른 값)을 믿지 않고 모양부터 확인한다. 규칙 검사(참가자 있음, 1:1 인터뷰만)는 parseTranscript가 다시 한다.
+function cleanRoles(roles: unknown): Roles | undefined | null {
+  if (roles === undefined) return undefined;
+  if (typeof roles !== "object" || roles === null || Array.isArray(roles)) return null;
+  const entries = Object.entries(roles);
+  if (entries.length > 26 || entries.some(([k, v]) => k.length > 40 || (v !== "moderator" && v !== "participant"))) return null;
+  return Object.fromEntries(entries) as Roles;
+}
+
+export async function upload(text: string, roles?: Roles): Promise<UploadResult> {
+  const clean = cleanRoles(roles);
+  if (clean === null) return { problems: [{ message: "화자 역할을 읽지 못했어요. 화자를 다시 확인해 주세요." }] };
   if (typeof text !== "string" || text.length > MAX_CHARS * 2)
     return { problems: [{ message: `파일이 너무 커요. ${TOO_LONG_FACT}` }] };
-  return save(text); // 화면을 새로 고치는 일은 파일 여러 개를 모두 올린 뒤 refreshAfterUpload가 한 번만 한다
+  return save(text, clean); // 화면을 새로 고치는 일은 파일 여러 개를 모두 올린 뒤 refreshAfterUpload가 한 번만 한다
 }
 
 // 올리기를 모두 마친 뒤 목록과 남은 자리를 새로 고친다(파일마다 새로 그리지 않는다).

@@ -27,7 +27,7 @@ export default function Home() {
         </Typography>
         <ul className="mt-2 space-y-1 text-sm text-fg-2">
           <li>
-            txt 파일을 최대 {MAX_TRANSCRIPTS}건까지 올릴 수 있어요. 한 파일은 {MAX_CHARS.toLocaleString()}자까지예요.
+            txt 파일을 최대 {MAX_TRANSCRIPTS}건까지 올릴 수 있어요. 한 파일은 {MAX_CHARS.toLocaleString()}자(녹음 약 35분)까지예요.
           </li>
           <li>전화번호·이메일·주민등록번호처럼 보이는 내용이 있으면 올리기 전에 알려 드려요.</li>
           <li className="font-semibold text-fg">본문의 이름은 직접 확인해 주세요. 이름은 자동으로 찾지 못해요.</li>
@@ -39,7 +39,8 @@ export default function Home() {
             <li>줄마다 화자를 앞에 쓰면 발언 번호는 순서대로 붙어요. 예: <span className="font-mono">진행자: 질문</span>, <span className="font-mono">참가자: 답변</span></li>
             <li>진행자는 진행자·인터뷰어·모더레이터·Q, 참가자는 참가자·응답자·A로 알아봐요. 진행자가 있으면 나머지 한 사람(이름 등)은 참가자로 봐요.</li>
             <li>자동으로 정리하는 것: 번호 붙이기, 시간 표시(00:01:23) 지우기, 화자 없는 줄을 앞 발언에 잇기, 머리말 줄 제외. 발언 글자는 바꾸지 않고, 정리한 내용은 저장 결과에 알려 드려요.</li>
-            <li>화자가 3명 이상이거나 진행자와 참가자를 구분할 수 없으면 저장하지 않고 이유를 알려 드려요.</li>
+            <li>누가 진행자인지 알 수 없는 파일(클로바노트의 “참석자 1”, 이름 등)은 저장하기 전에 화자마다 진행자와 참가자를 고르게 해요. 고르기 전에는 아무것도 저장하지 않아요.</li>
+            <li>진행자 표기와 참가자 표기만 있는 파일에서 화자가 3명 이상이면 저장하지 않고 이유를 알려 드려요.</li>
             <li>이미 <span className="font-mono">A-01 진행자: 질문</span>처럼 번호가 있는 파일도 그대로 올릴 수 있어요.</li>
           </ul>
         </details>
