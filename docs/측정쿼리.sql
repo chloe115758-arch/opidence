@@ -101,3 +101,88 @@ from analysis_runs
 where model <> 'mock' and status <> 'ok'
 order by created_at desc
 limit 20;
+
+
+-- ═══════════════════════════ 검색 · 찾기 (5단계) ═══════════════════════════
+-- 검색 기록(search_runs)에는 질문과 답변 문장이 없다. 그래서 질문과 기록을 맞추려면
+-- 검색할 때마다 "검색 시각 + 질문 + 정답 발언 번호"를 직접 적어 두고, 아래 결과의 시각과 대조한다.
+-- 가짜 응답(MOCK_AI=1)으로 만든 기록은 model = 'mock'이라서 모두 뺀다. 아래 조회문은 "가장 최근에 끝난 검색"의 사용자만 본다.
+-- 유사도 기준선은 아직 정하지 않았다. [5]·[6]은 4일차에 "정답을 아는 질문 10개"로 기준선을 정할 때 쓴다.
+
+-- [4] 검색 회차별 요약 (최근 끝난 검색 30건, 오래된 것부터)
+--     첫 검색(색인 포함)은 새로_만든_발언 > 0인 행이다. 시간과 토큰이 평소보다 크다.
+--     형식 일치율 = 일치 / 받은 번호 수. 번호가 원문의 참가자 발언으로 존재하는지만 본다(뜻이 맞는지는 사람이 본다).
+select row_number() over (order by created_at) as 회차,
+       created_at as 검색_시각,
+       prompt_version,
+       indexed_count as 새로_만든_발언,
+       retrieved_count as 가져온_발언,
+       sentence_count as 요약_문장,
+       id_total as 받은_번호_수,
+       id_verified as 일치,
+       id_not_found as 원문에_없음,
+       id_moderator as 진행자_발언,
+       round(100.0 * id_verified / nullif(id_total, 0), 1) as 형식_일치율_pct,
+       round(duration_ms / 1000.0, 1) as 걸린_초,
+       embed_tokens,
+       input_tokens,
+       output_tokens
+from (
+  select *
+  from search_runs
+  where status = 'ok' and model <> 'mock'
+    and owner_id = (select owner_id from search_runs where status = 'ok' and model <> 'mock' order by created_at desc limit 1)
+  order by created_at desc
+  limit 30
+) recent
+order by created_at;
+
+
+-- [5] 검색별 가져온 발언의 순위·유사도와, 요약이 실제로 인용했는지 (유사도 기준선을 정할 때)
+--     순위 1이 질문과 가장 가까운 발언이다. 인용됨 = 요약이 쓴 번호이고 원문 대조를 통과한 것.
+--     정답_발언_번호를 적어 둔 질문이라면 이 표에서 정답이 몇 위·몇 점이었는지 본다.
+select r.created_at as 검색_시각,
+       h.ord as 순위,
+       h.item ->> 'id' as 발언_번호,
+       (h.item ->> 'score')::numeric as 유사도,
+       (h.item ->> 'id') = any(r.cited_ids) as 인용됨
+from search_runs r
+cross join lateral jsonb_array_elements(r.hits) with ordinality as h(item, ord)
+where r.status = 'ok' and r.model <> 'mock'
+  and r.owner_id = (select owner_id from search_runs where status = 'ok' and model <> 'mock' order by created_at desc limit 1)
+order by r.created_at, h.ord;
+
+
+-- [6] 검색별 유사도 범위: 인용된 발언의 최저 점수 vs 인용되지 않은 발언의 최고 점수
+--     인용된_최저가 인용_안된_최고보다 높게 벌어지면 그 사이에서 기준선을 잡을 수 있다. 겹치면 기준선 하나로 가를 수 없다.
+select r.created_at as 검색_시각,
+       max((h.item ->> 'score')::numeric) filter (where (h.item ->> 'id') = any(r.cited_ids)) as 인용된_최고,
+       min((h.item ->> 'score')::numeric) filter (where (h.item ->> 'id') = any(r.cited_ids)) as 인용된_최저,
+       max((h.item ->> 'score')::numeric) filter (where not (h.item ->> 'id') = any(r.cited_ids)) as 인용_안된_최고,
+       count(*) filter (where (h.item ->> 'id') = any(r.cited_ids)) as 인용된_수,
+       count(*) as 가져온_수
+from search_runs r
+cross join lateral jsonb_array_elements(r.hits) as h(item)
+where r.status = 'ok' and r.model <> 'mock'
+  and r.owner_id = (select owner_id from search_runs where status = 'ok' and model <> 'mock' order by created_at desc limit 1)
+group by r.id, r.created_at
+order by r.created_at;
+
+
+-- [7] 탈락한 번호 목록 (어떤 검색에서 어떤 번호가 왜 탈락했는지)
+select r.created_at as 검색_시각,
+       d ->> 'id' as 받은_번호,
+       case d ->> 'reason' when 'not_found' then '원문에 없음' when 'moderator' then '진행자 발언' else d ->> 'reason' end as 탈락_이유
+from search_runs r
+cross join lateral jsonb_array_elements(r.dropped) d
+where r.status = 'ok' and r.model <> 'mock'
+  and r.owner_id = (select owner_id from search_runs where status = 'ok' and model <> 'mock' order by created_at desc limit 1)
+order by r.created_at, d ->> 'id';
+
+
+-- [8] 끝나지 못한 검색도 함께 보기 (형식 오류, 호출 실패, 도중에 끊긴 running)
+select created_at, status, prompt_version, model, embedding_model, indexed_count, duration_ms
+from search_runs
+where model <> 'mock' and status <> 'ok'
+order by created_at desc
+limit 20;

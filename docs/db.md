@@ -7,7 +7,7 @@ Supabase(Postgres). SQL은 `supabase/migrations/`에 있고, 구조를 바꾸면
 | `0001_init.sql` | 테이블 4개, 건수 제한, 권한, RLS | SQL Editor에서 직접 실행 |
 | `0002_analysis.sql` | 분석 기록 테이블, 하루 10회 제한, 표시 순서 열, 인사이트를 한 번에 교체하는 함수 | SQL Editor에서 직접 실행 |
 | `0003_analysis_limit.sql` | 하루 횟수에서 `api_error`를 빼고, 끝난 분석 기록을 고칠 수 없게 잠금 | SQL Editor에서 직접 실행 |
-| `0004_search.sql` | pgvector 확장, 발언 임베딩 표, 비슷한 발언 찾기 함수, 검색 기록 표와 하루 30회 제한 | SQL Editor에서 직접 실행 (실행 전) |
+| `0004_search.sql` | pgvector 확장, 발언 임베딩 표, 비슷한 발언 찾기 함수, 검색 기록 표와 하루 30회 제한 | SQL Editor에서 직접 실행 (2026-11-23 실행, 확인 쿼리 통과) |
 
 ## 관계
 
