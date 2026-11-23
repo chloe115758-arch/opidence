@@ -3,8 +3,8 @@
 import { Button, SectionMessage, TextButton } from "@montage-ui/core";
 import { useRef, useState, useTransition, type ReactNode } from "react";
 import { refreshAfterUpload, upload } from "@/app/actions";
-import { runBatch, type BatchInput, type BatchResult } from "@/lib/batch";
-import { MAX_CHARS, parseTranscript, type Problem } from "@/lib/transcript";
+import { byName, runBatch, type BatchInput, type BatchResult } from "@/lib/batch";
+import { describeNotes, MAX_CHARS, parseTranscript, type Problem } from "@/lib/transcript";
 
 const SHOWN = 10;
 
@@ -103,6 +103,7 @@ function UploadResult({ outcome, onClose }: { outcome: BatchResult; onClose: () 
               <li key={f.name} className="break-words text-fg-2">
                 <span className="break-all font-medium text-fg">{f.name}</span>
                 {f.status === "saved" && ` → 참가자 ${f.label} (발언 ${f.utterances}개)`}
+                {f.status === "saved" && describeNotes(f.notes) && <span className="block text-xs text-fg-3">{describeNotes(f.notes)}</span>}
               </li>
             ))}
           </ul>
@@ -121,7 +122,7 @@ export function UploadForm({ remaining }: { remaining: number }) {
   const [pending, start] = useTransition();
 
   function handle(list: FileList | null) {
-    const files = list ? [...list] : [];
+    const files = list ? [...list].sort(byName) : []; // 파일 이름 순으로 처리하고 보여 준다(브라우저가 주는 순서에 기대지 않는다)
     if (files.length === 0 || pending) return;
     setOutcome(null); // 새 업로드를 시작하면 이전 결과를 지운다. 그 전까지는 남아 있다.
     start(async () => {
@@ -170,8 +171,8 @@ export function UploadForm({ remaining }: { remaining: number }) {
           e.currentTarget.value = ""; // 같은 파일을 고쳐서 다시 고를 수 있게 한다
         }}
       />
-      <p className="text-sm text-fg-2">여기에 txt 파일을 끌어다 놓거나 아래 버튼으로 고르세요. 여러 개를 한꺼번에 올릴 수 있습니다.</p>
-      <p className="mt-1 mb-3 text-xs text-fg-3">남은 자리 {remaining}건</p>
+      <p className="text-sm text-fg-2">여기에 끌어다 놓거나 아래 버튼으로 고르세요.</p>
+      <p className="mt-1 mb-3 text-xs text-fg-3">{remaining > 0 ? `${remaining}건 더 올릴 수 있습니다` : "더 올릴 자리가 없습니다"}</p>
       <Button size="medium" loading={pending} onClick={() => input.current?.click()}>
         txt 파일 선택
       </Button>

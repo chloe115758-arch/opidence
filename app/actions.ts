@@ -4,8 +4,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { saveTranscript } from "@/lib/store";
-import { MAX_CHARS, parseTranscript, type Problem } from "@/lib/transcript";
+import { listTranscripts, saveTranscript } from "@/lib/store";
+import { MAX_CHARS, parseForSave, parseTranscript, type Problem } from "@/lib/transcript";
 
 // 모든 액션은 문제 목록을 돌려준다. 빈 배열이면 성공이다.
 
@@ -18,19 +18,30 @@ async function workspace() {
   return error ? null : db;
 }
 
+// 파일 하나를 저장한 결과. problems가 비어 있으면 성공이고, label은 저장된 참가자 라벨이다(파일에 라벨이 없으면 서버가 정한 글자).
+export type UploadResult = { problems: Problem[]; label?: string };
+
 // 업로드와 샘플 불러오기가 함께 쓰는 검사·저장 경로. 브라우저에서 검사했어도 여기서 다시 검사한다.
-async function save(raw: string): Promise<Problem[]> {
-  const parsed = parseTranscript(raw);
-  if (!parsed.ok) return parsed.problems; // 형식이 틀리면 작업 공간(익명 사용자)도 만들지 않는다
+async function save(raw: string): Promise<UploadResult> {
+  const first = parseTranscript(raw);
+  if (!first.ok) return { problems: first.problems }; // 형식이 틀리면 작업 공간(익명 사용자)도 만들지 않는다
   const db = await workspace();
-  if (!db) return [{ message: "작업 공간을 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요." }];
-  const message = await saveTranscript(db, parsed);
-  return message ? [{ message }] : [];
+  if (!db) return { problems: [{ message: "작업 공간을 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요." }] };
+
+  // 라벨이 없는 파일은 지금 올라가 있는 라벨 중 비어 있는 글자를 붙인다. 동시에 올려 같은 글자를 잡으면 한 번 더 시도한다.
+  for (let attempt = 0; ; attempt++) {
+    const used = first.autoLabel ? (await listTranscripts(db)).map((t) => t.label) : [];
+    const parsed = parseForSave(raw, used);
+    if (!parsed.ok) return { problems: parsed.problems };
+    const failure = await saveTranscript(db, parsed);
+    if (!failure) return { problems: [], label: parsed.label };
+    if (!(first.autoLabel && failure.duplicate && attempt === 0)) return { problems: [{ message: failure.message }] };
+  }
 }
 
-export async function upload(text: string): Promise<Problem[]> {
+export async function upload(text: string): Promise<UploadResult> {
   if (typeof text !== "string" || text.length > MAX_CHARS * 2)
-    return [{ message: `파일당 ${MAX_CHARS.toLocaleString()}자까지 올릴 수 있습니다. 내용을 줄이거나 나누어 올려 주세요.` }];
+    return { problems: [{ message: `파일당 ${MAX_CHARS.toLocaleString()}자까지 올릴 수 있습니다. 내용을 줄이거나 나누어 올려 주세요.` }] };
   return save(text); // 화면을 새로 고치는 일은 파일 여러 개를 모두 올린 뒤 refreshAfterUpload가 한 번만 한다
 }
 
@@ -44,7 +55,7 @@ export async function loadSamples(): Promise<Problem[]> {
   const names = (await fs.readdir(dir)).filter((name) => /^interview_[A-Z]\.txt$/.test(name)).sort();
   let problems: Problem[] = [];
   for (const name of names) {
-    problems = (await save(await fs.readFile(path.join(dir, name), "utf8"))).map((p) => ({
+    problems = (await save(await fs.readFile(path.join(dir, name), "utf8"))).problems.map((p) => ({
       ...p,
       message: `${name}: ${p.message}`,
     }));

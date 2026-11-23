@@ -245,6 +245,15 @@ export function parseTranscript(raw: string, autoLabel = "A"): Parsed {
   return { ok: true, label: finalLabel, autoLabel: autoLabeled, meta, charCount: text.length, utterances, notes };
 }
 
+// 저장 직전에 부른다: 파일에 라벨이 없으면 이미 올라간 라벨(used) 중 비어 있는 다음 글자를 붙여 다시 읽는다.
+export function parseForSave(raw: string, used: Iterable<string>): Parsed {
+  const first = parseTranscript(raw);
+  if (!first.ok || !first.autoLabel) return first;
+  const label = nextFreeLabel(used);
+  if (!label) return fail([{ message: "참가자 라벨 A~Z를 모두 쓰고 있습니다. 목록에서 쓰지 않는 전사본을 지운 뒤 다시 올려 주세요." }]);
+  return parseTranscript(raw, label);
+}
+
 // 비어 있는 다음 글자(A부터). 26자를 모두 쓰고 있으면 null.
 export function nextFreeLabel(used: Iterable<string>): string | null {
   const taken = new Set(used);

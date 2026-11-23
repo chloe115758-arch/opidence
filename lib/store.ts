@@ -11,16 +11,19 @@ type DbError = { code?: string; message: string };
 // 로그인하지 않은 요청은 테이블 권한이 없어 오류가 난다. 조회 전에 확인해 빈 작업 공간으로 보여 준다.
 const signedIn = async (db: SupabaseClient) => !!(await db.auth.getClaims()).data;
 
-// 저장에 성공하면 null, 실패하면 사용자에게 보여 줄 문구를 돌려준다.
+// 저장에 성공하면 null, 실패하면 사용자에게 보여 줄 문구를 돌려준다. duplicate는 같은 라벨이 이미 있어서 실패했다는 뜻이다.
 // 전사본과 발언은 DB 함수 save_transcript 한 번으로 저장한다(한 트랜잭션: 둘 다 되거나 둘 다 안 된다).
-export async function saveTranscript(db: SupabaseClient, t: Extract<Parsed, { ok: true }>): Promise<string | null> {
+export async function saveTranscript(
+  db: SupabaseClient,
+  t: Extract<Parsed, { ok: true }>,
+): Promise<{ message: string; duplicate: boolean } | null> {
   const { error } = await db.rpc("save_transcript", {
     p_label: t.label,
     p_meta: t.meta,
     p_char_count: t.charCount,
     p_utterances: t.utterances.map((u) => ({ utterance_id: u.id, seq: u.seq, speaker_role: u.role, text: u.text })),
   });
-  return error ? explain(error, t.label) : null;
+  return error ? { message: explain(error, t.label), duplicate: error.code === "23505" } : null;
 }
 
 function explain(error: DbError, label: string): string {
