@@ -49,7 +49,7 @@ async function read(file: File): Promise<BatchInput> {
 // 결과: 맨 위 요약, 실패한 파일(이름·이유·고칠 방법), 저장한 파일. 다음 업로드를 시작하기 전까지 남고 닫기로 지운다.
 function UploadResult({ outcome, onClose }: { outcome: BatchResult; onClose: () => void }) {
   const close = (
-    <TextButton size="small" color="assistive" onClick={onClose}>
+    <TextButton className="tap" size="small" color="assistive" onClick={onClose}>
       닫기
     </TextButton>
   );
@@ -173,7 +173,7 @@ export function UploadForm({ remaining }: { remaining: number }) {
       />
       <p className="text-sm text-fg-2">여기에 끌어다 놓거나 아래 버튼으로 고르세요.</p>
       <p className="mt-1 mb-3 text-xs text-fg-3">{remaining > 0 ? `${remaining}건 더 올릴 수 있어요` : "더 올릴 자리가 없어요"}</p>
-      <Button size="medium" loading={pending} onClick={() => input.current?.click()}>
+      <Button className="tap" size="medium" loading={pending} onClick={() => input.current?.click()}>
         txt 파일 선택
       </Button>
       <div aria-live="polite" className="mt-3 w-full text-left">
@@ -219,7 +219,7 @@ export function ActionButton({
           {children}
         </Button>
       ) : (
-        <TextButton size="small" color="assistive" loading={pending} onClick={onClick}>
+        <TextButton className="tap" size="small" color="assistive" loading={pending} onClick={onClick}>
           {children}
         </TextButton>
       )}

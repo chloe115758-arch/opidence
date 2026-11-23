@@ -45,7 +45,7 @@ export function Analyze({ remaining, disabled, hasInsights }: { remaining: numbe
   return (
     <div className="w-full space-y-3">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <Button size="medium" loading={pending} disabled={disabled || remaining === 0} onClick={run}>
+        <Button className="tap" size="medium" loading={pending} disabled={disabled || remaining === 0} onClick={run}>
           {hasInsights ? "다시 분석하기" : "분석하기"}
         </Button>
         <p className="text-sm text-fg-2">

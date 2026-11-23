@@ -13,11 +13,11 @@ export function Quote({ checked, n }: { checked: Checked; n?: number }) {
   // "근거 없음"은 오류가 아니라 정상 상태다. 오류 색을 쓰지 않고 중립 색으로 둔다.
   if (checked.status !== "verified") {
     return (
-      <div id={anchor} className="rounded-xl border border-dashed border-line-strong bg-fill px-4 py-3 text-sm">
+      <div id={anchor} className="min-w-0 rounded-xl border border-dashed border-line-strong bg-fill px-4 py-3 text-sm">
         <ContentBadge size="small" variant="outlined" color="neutral">
           근거 없음
         </ContentBadge>
-        <p className="mt-2 text-fg-2">
+        <p className="mt-2 break-words text-fg-2">
           {checked.status === "moderator"
             ? `진행자 발언(${id})은 근거로 쓰지 않아요.`
             : `AI가 연결한 발언(${id})이 원문에 없어요.`}
@@ -31,7 +31,7 @@ export function Quote({ checked, n }: { checked: Checked; n?: number }) {
     <Link
       id={anchor}
       href={`/transcripts/${u.label}?u=${u.id}#${u.id}`}
-      className="block scroll-mt-6 rounded-xl border border-line bg-surface px-4 py-3 shadow-card transition-colors hover:border-accent-line target:border-accent target:bg-accent-soft target:ring-2 target:ring-accent"
+      className="block min-w-0 scroll-mt-6 rounded-xl border border-line bg-surface px-4 py-3 shadow-card transition-colors hover:border-accent-line target:border-accent target:bg-accent-soft target:ring-2 target:ring-accent"
     >
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-3">
         {n && <span className="rounded-md bg-accent px-1.5 py-0.5 font-semibold text-white">{n}</span>}

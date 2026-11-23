@@ -6,7 +6,7 @@ export function CiteLink({ n }: { n: number }) {
     <a
       href={`#cite-${n}`}
       aria-label={`근거 ${n} 보기`}
-      className="ml-1 rounded-md bg-accent px-1.5 py-0.5 align-text-top text-xs font-semibold text-white"
+      className="tap-y ml-1 rounded-md bg-accent px-1.5 py-0.5 align-text-top text-xs font-semibold text-white"
       onClick={(e) => {
         e.preventDefault();
         const { scrollX, scrollY } = window;
