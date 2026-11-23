@@ -5,7 +5,7 @@ import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { listTranscripts, saveTranscript } from "@/lib/store";
-import { MAX_CHARS, parseForSave, parseTranscript, type Problem } from "@/lib/transcript";
+import { MAX_CHARS, TOO_LONG_FACT, parseForSave, parseTranscript, type Problem } from "@/lib/transcript";
 
 // 모든 액션은 문제 목록을 돌려준다. 빈 배열이면 성공이다.
 
@@ -41,7 +41,7 @@ async function save(raw: string): Promise<UploadResult> {
 
 export async function upload(text: string): Promise<UploadResult> {
   if (typeof text !== "string" || text.length > MAX_CHARS * 2)
-    return { problems: [{ message: `파일이 너무 커요. 한 파일에 ${MAX_CHARS.toLocaleString()}자까지 올릴 수 있으니 내용을 줄이거나 나누어 올려 주세요.` }] };
+    return { problems: [{ message: `파일이 너무 커요. ${TOO_LONG_FACT}` }] };
   return save(text); // 화면을 새로 고치는 일은 파일 여러 개를 모두 올린 뒤 refreshAfterUpload가 한 번만 한다
 }
 

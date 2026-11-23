@@ -55,7 +55,7 @@ PRD 6번의 "뺀다" 항목(음성 변환, 다국어, 드래그 보드, 다른 �
 - 실제 기기 폭 확인은 사용자가 개발자 도구에서 한다.
 
 1. **6-7 클로바노트 가져오기** (결정 기록 9, 단계마다 커밋하고 멈춘다. 3단계가 끝나면 사용자가 화면을 확인한다)
-   1. `lib/speakers.ts`와 `lib/transcript.ts`(클로바 모드, 화자 확인, `roles`), 테스트, `data/test/24_클로바노트형식.txt`, `data/test/README.md`
+   1. `lib/speakers.ts`와 `lib/transcript.ts`(클로바 모드, 화자 확인, `roles`), 테스트, `data/test/24_클로바노트형식.txt`, `data/test/README.md` — **완료**(테스트 118개 통과). 구현 메모: 클로바 모드에서는 화자를 `표기 시간` 줄(분은 두 자리, 시:분:초는 시가 한 자리여도 됨)로만 알아봐서 본문의 `결론:`·`내일 3:30`이 화자로 읽히지 않는다(결정 9의 "v1에서 뺀 것"은 클로바 파일에서는 해당 없음, 다른 형식은 그대로). `lib/transcript.ts`가 `./speakers.ts`를 확장자 붙여 불러와서 `tsconfig.json`에 `allowImportingTsExtensions`를 켰다(node 테스트가 확장자 없는 .ts를 못 찾는다). 10,000자 안내는 `TOO_LONG_FACT` 한 곳에서 나오고 "나누어 올려 주세요"는 없앴다.
    2. `lib/batch.ts` 2단계 처리(역할이 적힌 파일 먼저, 확인이 필요한 파일은 이름 순으로 차례로)와 테스트
    3. `app/actions.ts`(`upload(text, roles?)`), `components/SpeakerConfirm.tsx`, `components/Upload.tsx` 연결, 문구 → **여기서 멈추고 사용자가 확인**
    4. 375px·320px에서 확인 화면 점검(6-5와 같은 측정 스크립트)

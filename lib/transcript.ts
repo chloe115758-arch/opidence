@@ -6,9 +6,12 @@
 // 2) 그 밖의 형식: 발언 번호를 직접 적지 않아도 된다. 화자 표기(진행자:, Q:, 참가자:, 이름: …)를 알아보고 번호를 순서대로 붙인다.
 // 자동 정리는 줄 합치기(공백 1칸), 시간 표시 지우기, 앞뒤 공백 정리, 머리말 제외, 번호 붙이기뿐이다. 발언의 원문 글자는 바꾸지 않는다.
 // 무엇을 정리했는지는 notes에 담아 화면이 한 줄로 알려 준다.
+import { checkRoles, defaultRoles, preview, type Roles, type SpeakerInfo } from "./speakers.ts"; // 확장자를 붙인다: node 테스트(--test)가 .ts를 확장자 없이 못 찾는다
 import type { Utterance } from "./types";
 
 export const MAX_CHARS = 10000;
+// 한도 안내는 사실만 알린다. "나누어 올리기"는 권하지 않는다: 한 인터뷰를 나누면 같은 참가자가 파일마다 다른 참가자로 잡힌다(docs/plan.md 결정 9). 28분 녹음이 약 7,900자라 10,000자는 약 35분이다.
+export const TOO_LONG_FACT = `지금은 한 파일에 ${MAX_CHARS.toLocaleString()}자(녹음 약 35분)까지 올릴 수 있어요.`;
 // 사용자당 전사본 수. 실제 제한은 DB 트리거(transcripts_limit)가 건다. 이 값은 화면이 올리기 전에 안내하려고 쓴다.
 export const MAX_TRANSCRIPTS = 10;
 
@@ -21,7 +24,11 @@ export type Notes = {
   times: number; // 지운 시간 표시 수
   joined: number; // 화자 없는 줄을 앞 발언에 이어 붙인 곳(발언) 수
   preamble: number; // 첫 발언 앞에서 저장하지 않은 머리말 줄 수
+  confirmed: boolean; // 사용자가 화자 확인에서 진행자·참가자를 직접 골랐다(규칙: lib/speakers.ts)
 };
+
+// 역할을 알 수 없는 파일: 저장하기 전에 화자마다 역할을 고르게 한다. 화면은 이 정보로 확인 단계를 보여 준다.
+export type Confirm = { speakers: SpeakerInfo[]; defaults: Roles };
 
 export type Parsed =
   | {
@@ -33,7 +40,8 @@ export type Parsed =
       utterances: Utterance[];
       notes: Notes;
     }
-  | { ok: false; problems: Problem[] };
+  // confirm이 있으면 문제는 "역할을 알 수 없다"뿐이고 화자 확인으로 풀 수 있다. problems에는 확인을 모르는 호출자를 위한 기존 안내가 들어 있다.
+  | { ok: false; problems: Problem[]; confirm?: Confirm };
 
 const HEADER = /^참가자 ([A-Z])(?: \||$)/;
 const HEADER_WITH_META = /^참가자 ([A-Z]) \|/; // 번호 없는 형식에서는 '참가자 A'만 있는 줄이 화자 줄일 수 있어 메타가 있는 줄만 머리말로 본다
@@ -100,15 +108,40 @@ function speakerOf(line: string): { token: string; rest: string; times: number }
   return null;
 }
 
+// ───────────── 클로바노트 형식 ─────────────
+// "참석자 1 00:00" 처럼 화자와 시간만 있는 줄(분:초는 분이 두 자리, 시:분:초는 시가 한 자리여도 된다). 본문의 "내일 3:30"은 화자 줄로 읽지 않는다.
+const CLOVA_TIME = /\s+(?:\d{2}:\d{2}|\d{1,2}:\d{2}:\d{2})$/;
+function clovaSpeakerOf(line: string): { token: string } | null {
+  const t = CLOVA_TIME.exec(line);
+  if (!t) return null;
+  const token = line.slice(0, t.index).trim();
+  return /[A-Za-z가-힣]/.test(token) && token.split(/\s+/).length <= 2 && token.length <= 20 && !/^https?$/i.test(token) ? { token } : null;
+}
+
+// 클로바 형식이면 첫 화자 줄의 위치(줄 번호 0부터)를 돌려준다. 같은 화자가 두 번 이상 나오는 줄이 있어야 하고(머리말의 "11월 23일 15:20"을 화자로 읽지 않는다),
+// '진행자:' 처럼 역할이 적힌 줄이 있으면 다른 형식으로 보고 이 모드를 쓰지 않는다.
+function clovaStart(lines: string[]): number {
+  const found: { i: number; key: string }[] = [];
+  for (const [i, raw] of lines.entries()) {
+    const line = raw.trim();
+    const sp = line && clovaSpeakerOf(line);
+    if (sp) found.push({ i, key: keyOf(sp.token) });
+    else if (line && kindOf(speakerOf(line)?.token ?? "") !== "other") return -1;
+  }
+  const counts = new Map<string, number>();
+  for (const f of found) counts.set(f.key, (counts.get(f.key) ?? 0) + 1);
+  return found.find((f) => counts.get(f.key)! >= 2)?.i ?? -1;
+}
+
 type Draft = { line: number; text: string; role?: Utterance["role"]; speaker?: string };
 
-export function parseTranscript(raw: string, autoLabel = "A"): Parsed {
+export function parseTranscript(raw: string, autoLabel = "A", roles?: Roles): Parsed {
   const text = raw.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
   if (!text.trim()) return fail([{ message: "파일이 비어 있어요. 전사본 내용을 넣고 다시 올려 주세요." }]);
   if (text.length > MAX_CHARS)
     return fail([
       {
-        message: `파일이 너무 길어요. 한 파일에 ${MAX_CHARS.toLocaleString()}자까지 올릴 수 있어요(지금 ${text.length.toLocaleString()}자). 내용을 줄이거나 나누어 올려 주세요.`,
+        message: `파일이 너무 길어요. ${TOO_LONG_FACT} 이 파일은 ${text.length.toLocaleString()}자예요.`,
       },
     ]);
 
@@ -118,7 +151,8 @@ export function parseTranscript(raw: string, autoLabel = "A"): Parsed {
   const drafts: Draft[] = [];
   const joined = new Set<Draft>();
   const speakers = new Map<string, { token: string; kind: Kind; count: number }>();
-  const notes: Notes = { numbersAdded: !numbered, speakers: false, times: 0, joined: 0, preamble: 0 };
+  const notes: Notes = { numbersAdded: !numbered, speakers: false, times: 0, joined: 0, preamble: 0, confirmed: false };
+  const clova = numbered ? -1 : clovaStart(lines); // 클로바 형식이면 첫 화자 줄 앞은 모두 머리말이고, 화자는 "표기 시간" 줄로만 알아본다
   let label = "";
   let meta = "";
   let noticeSkipped = false;
@@ -132,6 +166,10 @@ export function parseTranscript(raw: string, autoLabel = "A"): Parsed {
     const found = PII.filter(([, pattern]) => pattern.test(line)).map(([name]) => name).join("·");
     if (found) problems.push({ line: n, message: `${found}처럼 보이는 내용이 있어요. 지우거나 '(${found})'로 바꾸고 다시 올려 주세요.` });
 
+    if (i < clova) {
+      notes.preamble++; // 클로바 머리말(제목, 날짜, 작성자). 화자로 읽지도 저장하지도 않는다
+      return;
+    }
     if (TIME_ONLY.test(line)) {
       notes.times++;
       return;
@@ -142,8 +180,8 @@ export function parseTranscript(raw: string, autoLabel = "A"): Parsed {
 
     const continueLast = () => {
       const last = drafts[drafts.length - 1];
+      if (last.text || clova < 0) joined.add(last); // 클로바 형식은 모든 발언이 화자 줄 다음 줄에서 시작하므로, 이미 글이 있는 발언에 이을 때만 "여러 줄 합침"으로 센다(다른 형식은 예전 그대로)
       last.text = last.text ? `${last.text} ${line}` : line;
-      joined.add(last);
     };
 
     // ── 번호 형식: 지금까지의 규칙 그대로. 화자 없는 줄은 앞 발언에 잇는다. ──
@@ -187,7 +225,8 @@ export function parseTranscript(raw: string, autoLabel = "A"): Parsed {
       meta = line.replace(/^참가자 [A-Z]\s*\|?\s*/, "");
       return;
     }
-    const sp = speakerOf(line);
+    const c = clova >= 0 ? clovaSpeakerOf(line) : null;
+    const sp = clova >= 0 ? (c && { token: c.token, rest: "", times: 1 }) : speakerOf(line);
     if (sp) {
       const key = keyOf(sp.token);
       const seen = speakers.get(key);
@@ -201,37 +240,64 @@ export function parseTranscript(raw: string, autoLabel = "A"): Parsed {
 
   notes.joined = joined.size;
 
+  let confirm: Confirm | undefined;
   if (!numbered) {
     const list = [...speakers.values()];
     const shown = list.map((s) => `'${s.token}' ${s.count}줄`).join(", ");
+    const mods = list.filter((s) => s.kind === "moderator").length;
+    const empties = (): Problem[] => drafts.filter((d) => !d.text).map((d) => ({ line: d.line, message: "화자만 있고 발언 내용이 없어요. 발언을 쓰거나 이 줄을 지워 주세요." }));
+    // 지금 규칙으로 역할을 정할 수 없을 때의 안내(화자 확인을 모르는 호출자는 이 안내로 막힌다)
+    let roleProblem: string | null = null;
     if (list.length === 0)
       problems.push({
         message: "화자 표기를 찾지 못했어요. 발언 줄 맨 앞에 '진행자: 질문', '참가자: 답변'처럼 화자와 ':'를 써 주세요.",
       });
     else if (list.length >= 3)
-      problems.push({
-        message: `화자 표기가 ${list.length}개로 읽혔어요(${shown}). 진행자 1명과 참가자 1명의 인터뷰만 올릴 수 있어요. 발언 안의 ':' 때문에 화자로 읽힌 표기가 있으면 그 줄을 고쳐 주세요.`,
-      });
-    else {
-      const mods = list.filter((s) => s.kind === "moderator").length;
-      if (mods === list.length)
-        problems.push({ message: `참가자로 읽을 화자가 없어요(읽은 표기: ${shown}). 참가자 발언 줄에는 '참가자:'나 '응답자:'를 써 주세요.` });
-      else if (list.length === 2 ? mods === 0 : list[0].kind === "other")
-        problems.push({
-          message: `진행자와 참가자를 구분할 수 없어요(읽은 표기: ${shown}). 진행자는 '진행자'나 '인터뷰어'로, 참가자는 '참가자'나 '응답자'로 바꿔 주세요.`,
-        });
-    }
-    if (problems.length === 0) {
+      roleProblem = `화자 표기가 ${list.length}개로 읽혔어요(${shown}). 진행자 1명과 참가자 1명의 인터뷰만 올릴 수 있어요. 발언 안의 ':' 때문에 화자로 읽힌 표기가 있으면 그 줄을 고쳐 주세요.`;
+    else if (mods === list.length)
+      problems.push({ message: `참가자로 읽을 화자가 없어요(읽은 표기: ${shown}). 참가자 발언 줄에는 '참가자:'나 '응답자:'를 써 주세요.` });
+    else if (list.length === 2 ? mods === 0 : list[0].kind === "other")
+      roleProblem = `진행자와 참가자를 구분할 수 없어요(읽은 표기: ${shown}). 진행자는 '진행자'나 '인터뷰어'로, 참가자는 '참가자'나 '응답자'로 바꿔 주세요.`;
+
+    // 모르는 표기가 있으면 화자 확인으로 풀 수 있다. '진행자'·'참가자' 표기만 있는 파일은 지금처럼 막는다.
+    const confirmable = roleProblem !== null && list.some((s) => s.kind === "other");
+    if (roleProblem !== null && !confirmable) problems.push({ message: roleProblem });
+    else if (confirmable && problems.length > 0) problems.push({ message: roleProblem! });
+    else if (confirmable) {
+      const firsts = new Map<string, string>();
+      for (const d of drafts) if (!firsts.has(d.speaker!)) firsts.set(d.speaker!, d.text);
+      const infos: SpeakerInfo[] = list.map((s) => ({
+        key: keyOf(s.token),
+        token: s.token,
+        count: s.count,
+        first: preview(firsts.get(keyOf(s.token)) ?? ""),
+        known: s.kind === "other" ? null : s.kind,
+      }));
+      if (!roles) {
+        problems.push(...empties());
+        if (problems.length === 0) {
+          confirm = { speakers: infos, defaults: defaultRoles(infos) };
+          problems.push({ message: roleProblem! });
+        }
+      } else {
+        problems.push(...checkRoles(infos, roles), ...empties());
+        if (problems.length === 0) {
+          for (const d of drafts) d.role = roles[d.speaker!];
+          notes.speakers = true;
+          notes.confirmed = true;
+        }
+      }
+    } else if (problems.length === 0) {
       // 진행자 표기가 아닌 나머지 한 사람(참가자 표기, Q/A의 A, 이름 등)이 참가자다. 표기 자체(이름 등)는 저장하지 않는다.
       for (const d of drafts) d.role = speakers.get(d.speaker!)!.kind === "moderator" ? "moderator" : "participant";
       notes.speakers = list.some((s) => s.token !== "진행자" && s.token !== "참가자");
-      for (const d of drafts) if (!d.text) problems.push({ line: d.line, message: "화자만 있고 발언 내용이 없어요. 발언을 쓰거나 이 줄을 지워 주세요." });
+      problems.push(...empties());
     }
   }
 
   if (problems.length === 0 && !drafts.some((d) => d.role === "participant"))
     problems.push({ message: "참가자 발언이 없어요. 'A-02 참가자 A: 발언'처럼 참가자 발언을 넣어 주세요." });
-  if (problems.length) return fail(problems);
+  if (problems.length) return fail(problems, confirm);
 
   const autoLabeled = !label;
   const finalLabel = label || autoLabel;
@@ -246,12 +312,12 @@ export function parseTranscript(raw: string, autoLabel = "A"): Parsed {
 }
 
 // 저장 직전에 부른다: 파일에 라벨이 없으면 이미 올라간 라벨(used) 중 비어 있는 다음 글자를 붙여 다시 읽는다.
-export function parseForSave(raw: string, used: Iterable<string>): Parsed {
-  const first = parseTranscript(raw);
+export function parseForSave(raw: string, used: Iterable<string>, roles?: Roles): Parsed {
+  const first = parseTranscript(raw, "A", roles);
   if (!first.ok || !first.autoLabel) return first;
   const label = nextFreeLabel(used);
   if (!label) return fail([{ message: "참가자 라벨 A~Z를 모두 쓰고 있어요. 목록에서 쓰지 않는 전사본을 지우고 다시 올려 주세요." }]);
-  return parseTranscript(raw, label);
+  return parseTranscript(raw, label, roles);
 }
 
 // 비어 있는 다음 글자(A부터). 26자를 모두 쓰고 있으면 null.
@@ -265,6 +331,7 @@ export function describeNotes(n: Notes): string {
   const parts = [
     n.numbersAdded && "번호 붙임",
     n.speakers && "화자 표기 정리",
+    n.confirmed && "화자 역할 직접 고름",
     n.times > 0 && `시간 표시 ${n.times}개 지움`,
     n.joined > 0 && `여러 줄 ${n.joined}곳 합침`,
     n.preamble > 0 && `머리말 ${n.preamble}줄 제외`,
@@ -272,4 +339,4 @@ export function describeNotes(n: Notes): string {
   return parts.length ? `자동 정리됨: ${parts.join(", ")}` : "";
 }
 
-const fail = (problems: Problem[]): Parsed => ({ ok: false, problems });
+const fail = (problems: Problem[], confirm?: Confirm): Parsed => (confirm ? { ok: false, problems, confirm } : { ok: false, problems });

@@ -4,7 +4,7 @@ import { Button, SectionMessage, TextButton } from "@montage-ui/core";
 import { useRef, useState, useTransition, type ReactNode } from "react";
 import { refreshAfterUpload, upload } from "@/app/actions";
 import { byName, runBatch, type BatchInput, type BatchResult } from "@/lib/batch";
-import { describeNotes, MAX_CHARS, parseTranscript, type Problem } from "@/lib/transcript";
+import { describeNotes, MAX_CHARS, TOO_LONG_FACT, parseTranscript, type Problem } from "@/lib/transcript";
 
 const SHOWN = 10;
 
@@ -38,7 +38,7 @@ async function read(file: File): Promise<BatchInput> {
   if (!/\.txt$/i.test(name)) return { name, text: "", error: "txt 파일만 올릴 수 있어요. 메모장 등에서 txt로 저장한 파일을 골라 주세요." };
   // 10,000자는 UTF-8로 40KB를 넘지 않는다. 그보다 큰 파일은 읽지 않고 돌려보낸다.
   if (file.size > MAX_CHARS * 4)
-    return { name, text: "", error: `파일이 너무 커요. 한 파일에 ${MAX_CHARS.toLocaleString()}자까지 올릴 수 있으니 내용을 줄이거나 나누어 올려 주세요.` };
+    return { name, text: "", error: `파일이 너무 커요. ${TOO_LONG_FACT}` };
   try {
     return { name, text: await file.text() };
   } catch {
