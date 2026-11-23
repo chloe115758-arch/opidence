@@ -97,7 +97,7 @@ PRD 6번의 "뺀다" 항목(음성 변환, 다국어, 드래그 보드, 다른 �
 
 ### 6단계 — 상태 화면과 방어
 
-- 파일: 화면별 `loading.tsx`, `app/error.tsx`(2단계에서 만든 것을 다듬는다), 업로드 상태(빈 상태, 업로드 중, 형식 오류, 개인정보 경고), 작은 화면·긴 텍스트, `data/test/`(빈 파일, 제한 초과, 가짜 연락처)
+- 파일: 화면별 `loading.tsx`, `app/error.tsx`(2단계에서 만든 것을 다듬는다), 업로드 상태(빈 상태, 업로드 중, 형식 오류, 개인정보 경고), 작은 화면·긴 텍스트, `data/test/`(빈 파일·공백만·제한 초과·가짜 연락처·형식 오류 4종·긴 텍스트 정상 파일 1개, 9개. 기대 결과는 `data/test/README.md`와 `lib/testdata.test.mjs`)
 - 전사본·발언 저장을 한 번에 처리한다(6-1): 예전에는 요청 두 번이라 발언 저장이 실패하면 전사본을 지워 되돌렸다. DB 함수 `save_transcript`(`0005_save_transcript.sql`) 하나로 합쳐 한 트랜잭션으로 만들었고, `docs/db.md`를 함께 고쳤다.
 - ~~성공 메시지 강조~~: Montage 적용 때 초록 알림 상자(`SectionMessage`)로 바꿔 해결했다.
 - 개발 서버 경고 정리: `npm run dev` 터미널에 "`Date.now()` while prerendering"(`/`, `/insights`)와 "URL data during prerendering or a navigation"(`/ask`)이 반복해서 찍힌다. 화면은 정상으로 나오고 빌드도 통과한다. 화면별 `loading.tsx`/`<Suspense>`를 넣을 때 함께 없앤다.

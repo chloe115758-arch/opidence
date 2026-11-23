@@ -1,0 +1,10 @@
+[가상 테스트 데이터 — 실제 인물 아님]
+참가자 Q | 가상 | 아주 긴 설명 줄 확인용 | 긴 설명이 줄바꿈 없이 이어지는 경우를 보려고 계속 덧붙입니다 긴 설명이 줄바꿈 없이 이어지는 경우를 보려고 계속 덧붙입니다 긴 설명이 줄바꿈 없이 이어지는 경우를 보려고 계속 덧붙입니다 긴 설명이 줄바꿈 없이 이어지는 경우를 보려고 계속 덧붙입니다 | 끝
+
+Q-01 진행자: 화면이 좁을 때 긴 글이 어떻게 보이는지 확인하는 파일입니다. 질문도 길게 써서 줄바꿈이 잘 되는지 봅니다. 질문도 길게 써서 줄바꿈이 잘 되는지 봅니다.
+Q-02 참가자 Q: 공백 없는 긴 단어: 가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나다라마바사아자차카타파하
+Q-03 진행자: 주소도 한번 볼까요?
+Q-04 참가자 Q: 공백 없는 긴 주소: https://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+Q-05 진행자: 영어 단어는요?
+Q-06 참가자 Q: Pneumonoultramicroscopicsilicovolcanoconiosis_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 같은 긴 영어 단어도 있어요.
+Q-07 참가자 Q: 짧은 발언도 하나 넣어 둡니다.
