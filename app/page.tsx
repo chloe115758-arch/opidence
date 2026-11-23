@@ -103,7 +103,7 @@ async function TranscriptList() {
                   <ActionButton
                     variant="text"
                     action={remove.bind(null, t.label)}
-                    confirm={`참가자 ${t.label} 전사본과 발언 ${t.total}개를 지울까요? 되돌릴 수 없습니다.`}
+                    confirm={`참가자 ${t.label} 전사본을 지울까요? 발언 ${t.total}개와, 이 발언을 쓴 근거가 함께 사라져요. 묶음은 남아요. 지우면 되돌릴 수 없어요.`}
                   >
                     지우기
                   </ActionButton>

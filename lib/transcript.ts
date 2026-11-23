@@ -104,11 +104,11 @@ type Draft = { line: number; text: string; role?: Utterance["role"]; speaker?: s
 
 export function parseTranscript(raw: string, autoLabel = "A"): Parsed {
   const text = raw.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
-  if (!text.trim()) return fail([{ message: "파일이 비어 있습니다. 전사본 내용을 넣은 뒤 다시 올려 주세요." }]);
+  if (!text.trim()) return fail([{ message: "파일이 비어 있어요. 전사본 내용을 넣고 다시 올려 주세요." }]);
   if (text.length > MAX_CHARS)
     return fail([
       {
-        message: `파일당 ${MAX_CHARS.toLocaleString()}자까지 올릴 수 있습니다(현재 ${text.length.toLocaleString()}자). 내용을 줄이거나 나누어 올려 주세요.`,
+        message: `파일이 너무 길어요. 한 파일에 ${MAX_CHARS.toLocaleString()}자까지 올릴 수 있어요(지금 ${text.length.toLocaleString()}자). 내용을 줄이거나 나누어 올려 주세요.`,
       },
     ]);
 
@@ -130,7 +130,7 @@ export function parseTranscript(raw: string, autoLabel = "A"): Parsed {
 
     // 개인정보 검사는 원본 줄에 한다. 한 줄이 여러 형태에 걸려도(예: 000000-1000000은 주민등록번호와 전화번호 형태) 안내는 한 줄에 하나로 합친다.
     const found = PII.filter(([, pattern]) => pattern.test(line)).map(([name]) => name).join("·");
-    if (found) problems.push({ line: n, message: `${found} 형태가 있습니다. 지우거나 '(${found})'처럼 바꾼 뒤 다시 올려 주세요.` });
+    if (found) problems.push({ line: n, message: `${found}처럼 보이는 내용이 있어요. 지우거나 '(${found})'로 바꾸고 다시 올려 주세요.` });
 
     if (TIME_ONLY.test(line)) {
       notes.times++;
@@ -151,7 +151,7 @@ export function parseTranscript(raw: string, autoLabel = "A"): Parsed {
       const m = LINE.exec(line);
       if (!m) {
         if (LOOKS_LIKE_ID.test(line))
-          problems.push({ line: n, message: "화자는 '진행자' 또는 '참가자 A'처럼 쓰고, 뒤에 ': '와 발언을 붙여 주세요. 예: A-02 참가자 A: 네, 자주 써요." });
+          problems.push({ line: n, message: "화자는 '진행자' 또는 '참가자 A'로 쓰고 뒤에 ': '와 발언을 붙여 주세요. 예: A-02 참가자 A: 네, 자주 써요." });
         else if (drafts.length === 0 && !label && HEADER.test(line)) {
           label = HEADER.exec(line)![1];
           meta = line.replace(/^참가자 [A-Z]\s*\|?\s*/, "");
@@ -160,7 +160,7 @@ export function parseTranscript(raw: string, autoLabel = "A"): Parsed {
           if (!noticeSkipped && !label && /^\[.*\]$/.test(line)) noticeSkipped = true;
           else notes.preamble++;
         } else if (kindOf(speakerOf(line)?.token ?? "") !== "other")
-          problems.push({ line: n, message: "번호가 있는 줄과 없는 줄이 섞여 있습니다. 모든 발언에 'A-01 진행자: 질문'처럼 번호를 붙이거나, 번호를 모두 지워 주세요." });
+          problems.push({ line: n, message: "번호가 있는 줄과 없는 줄이 섞여 있어요. 모든 발언에 'A-01 진행자: 질문'처럼 번호를 붙이거나 번호를 모두 지워 주세요." });
         else continueLast();
         return;
       }
@@ -173,9 +173,9 @@ export function parseTranscript(raw: string, autoLabel = "A"): Parsed {
       }
       const expected = `${label}-${String(drafts.length + 1).padStart(2, "0")}`;
       if (id !== expected)
-        problems.push({ line: n, message: `발언 ID는 ${label}-01부터 순서대로, 참가자 라벨과 같은 글자로 써 주세요. 이 줄은 ${expected}이어야 합니다(현재 ${id}).` });
+        problems.push({ line: n, message: `발언 번호는 ${label}-01부터 순서대로, 참가자 라벨과 같은 글자로 써 주세요. 이 줄은 ${expected} 순서예요(지금 ${id}).` });
       if (speakerLabel && speakerLabel !== label)
-        problems.push({ line: n, message: `화자를 '참가자 ${label}'로 써 주세요(현재 '${speaker}'). 한 파일에는 참가자 한 명만 넣습니다.` });
+        problems.push({ line: n, message: `화자를 '참가자 ${label}'로 써 주세요(지금 '${speaker}'). 한 파일에는 참가자 한 명만 넣을 수 있어요.` });
       drafts.push({ line: n, text: sentence.trim(), role: speaker === "진행자" ? "moderator" : "participant" });
       return;
     }
@@ -206,31 +206,31 @@ export function parseTranscript(raw: string, autoLabel = "A"): Parsed {
     const shown = list.map((s) => `'${s.token}' ${s.count}줄`).join(", ");
     if (list.length === 0)
       problems.push({
-        message: "화자 표기를 찾지 못했습니다. 각 발언 줄 맨 앞에 '진행자: 질문', '참가자: 답변'처럼 화자와 ':'를 써 주세요. (번호를 직접 붙인다면 'A-01 진행자: 질문' 형식입니다.)",
+        message: "화자 표기를 찾지 못했어요. 발언 줄 맨 앞에 '진행자: 질문', '참가자: 답변'처럼 화자와 ':'를 써 주세요.",
       });
     else if (list.length >= 3)
       problems.push({
-        message: `화자 표기가 ${list.length}개로 읽혔습니다(${shown}). 진행자 1명과 참가자 1명이 나눈 인터뷰만 올릴 수 있습니다. 발언 안의 ':' 때문에 화자로 읽힌 표기가 있으면 그 줄을 고쳐 주세요.`,
+        message: `화자 표기가 ${list.length}개로 읽혔어요(${shown}). 진행자 1명과 참가자 1명의 인터뷰만 올릴 수 있어요. 발언 안의 ':' 때문에 화자로 읽힌 표기가 있으면 그 줄을 고쳐 주세요.`,
       });
     else {
       const mods = list.filter((s) => s.kind === "moderator").length;
       if (mods === list.length)
-        problems.push({ message: `참가자로 읽을 화자가 없습니다(읽은 표기: ${shown}). 참가자 발언 줄에는 '참가자:'나 '응답자:'를 써 주세요.` });
+        problems.push({ message: `참가자로 읽을 화자가 없어요(읽은 표기: ${shown}). 참가자 발언 줄에는 '참가자:'나 '응답자:'를 써 주세요.` });
       else if (list.length === 2 ? mods === 0 : list[0].kind === "other")
         problems.push({
-          message: `진행자와 참가자를 구분할 수 없습니다(읽은 표기: ${shown}). 진행자는 '진행자' 또는 '인터뷰어'로, 참가자는 '참가자' 또는 '응답자'로 바꿔 주세요.`,
+          message: `진행자와 참가자를 구분할 수 없어요(읽은 표기: ${shown}). 진행자는 '진행자'나 '인터뷰어'로, 참가자는 '참가자'나 '응답자'로 바꿔 주세요.`,
         });
     }
     if (problems.length === 0) {
       // 진행자 표기가 아닌 나머지 한 사람(참가자 표기, Q/A의 A, 이름 등)이 참가자다. 표기 자체(이름 등)는 저장하지 않는다.
       for (const d of drafts) d.role = speakers.get(d.speaker!)!.kind === "moderator" ? "moderator" : "participant";
       notes.speakers = list.some((s) => s.token !== "진행자" && s.token !== "참가자");
-      for (const d of drafts) if (!d.text) problems.push({ line: d.line, message: "화자 표기만 있고 발언 내용이 없습니다. 발언을 쓰거나 이 줄을 지워 주세요." });
+      for (const d of drafts) if (!d.text) problems.push({ line: d.line, message: "화자만 있고 발언 내용이 없어요. 발언을 쓰거나 이 줄을 지워 주세요." });
     }
   }
 
   if (problems.length === 0 && !drafts.some((d) => d.role === "participant"))
-    problems.push({ message: "참가자 발언이 없습니다. 'A-02 참가자 A: 발언'처럼 참가자 발언을 넣어 주세요." });
+    problems.push({ message: "참가자 발언이 없어요. 'A-02 참가자 A: 발언'처럼 참가자 발언을 넣어 주세요." });
   if (problems.length) return fail(problems);
 
   const autoLabeled = !label;
@@ -250,7 +250,7 @@ export function parseForSave(raw: string, used: Iterable<string>): Parsed {
   const first = parseTranscript(raw);
   if (!first.ok || !first.autoLabel) return first;
   const label = nextFreeLabel(used);
-  if (!label) return fail([{ message: "참가자 라벨 A~Z를 모두 쓰고 있습니다. 목록에서 쓰지 않는 전사본을 지운 뒤 다시 올려 주세요." }]);
+  if (!label) return fail([{ message: "참가자 라벨 A~Z를 모두 쓰고 있어요. 목록에서 쓰지 않는 전사본을 지우고 다시 올려 주세요." }]);
   return parseTranscript(raw, label);
 }
 

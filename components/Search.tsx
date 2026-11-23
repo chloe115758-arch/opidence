@@ -81,7 +81,7 @@ export function Search({ remaining, disabled, pendingIndex, view }: { remaining:
         </p>
         <p className="text-fg-2">
           오늘 남은 검색 <span className="font-semibold text-fg">{remaining}회</span>
-          <span className="text-fg-3"> · 하루 30회, 자정에 다시 채워집니다</span>
+          <span className="text-fg-3"> · 하루 30회예요. 자정에 다시 채워져요</span>
         </p>
       </div>
 
@@ -90,8 +90,8 @@ export function Search({ remaining, disabled, pendingIndex, view }: { remaining:
           // 걸린 시간은 추정해서 적지 않는다. 지난 시간만 보여 준다(스크린 리더가 매초 읽지 않도록 aria-hidden).
           <SectionMessage variant="info">
             {pendingIndex > 0
-              ? `처음 한 번만 준비하는 중이에요. 전사본의 참가자 발언 ${pendingIndex}개를 검색용으로 읽어 두는 중이라 평소보다 오래 걸립니다. 다음부터는 이 준비 없이 바로 찾습니다.`
-              : "비슷한 발언을 찾고 요약하는 중입니다."}{" "}
+              ? `처음 한 번만 준비하는 중이에요. 참가자 발언 ${pendingIndex}개를 검색용으로 읽어 두느라 평소보다 오래 걸려요. 다음부터는 바로 찾아요.`
+              : "비슷한 발언을 찾고 요약하는 중이에요."}{" "}
             {seconds > SLOW_AFTER && "조금 더 걸리고 있어요. 창을 닫지 말고 기다려 주세요. "}
             <span aria-hidden="true">· 찾는 중… {seconds}초</span>
           </SectionMessage>
@@ -126,15 +126,15 @@ function Result({ result, view }: { result: Extract<AskResult, { ok: true }>; vi
 
   return (
     <div className="space-y-6">
-      {result.indexed > 0 && <p className="text-sm text-fg-3">처음 한 번만 하는 준비를 마쳤습니다(발언 {result.indexed}개).</p>}
+      {result.indexed > 0 && <p className="text-sm text-fg-3">처음 한 번만 하는 준비를 마쳤어요(발언 {result.indexed}개).</p>}
 
       {shown.length === 0 ? (
         <section className="flex justify-center rounded-2xl border border-dashed border-line-strong px-5">
           <FallbackView padding="compact">
             <FallbackViewContent>
               <FallbackViewText
-                title="원문에서 근거를 찾지 못했습니다"
-                description="전사본에 없는 내용은 지어내지 않습니다. 질문을 바꾸거나 전사본을 직접 확인해 주세요."
+                title="원문에서 근거를 찾지 못했어요"
+                description="전사본에 없는 내용은 지어내지 않아요. 질문을 바꾸거나 전사본을 직접 확인해 주세요."
               />
             </FallbackViewContent>
           </FallbackView>

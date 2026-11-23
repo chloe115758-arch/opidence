@@ -33,8 +33,8 @@ export async function runBatch(inputs: BatchInput[], remaining: number, { parse,
     return {
       rejected:
         remaining <= 0
-          ? "더 올릴 자리가 없습니다. 목록에서 쓰지 않는 전사본을 지운 뒤 다시 올려 주세요. 아무것도 올리지 않았습니다."
-          : `${remaining}건만 더 올릴 수 있습니다. 파일을 ${n}개 골랐으니 ${n - remaining}개를 빼고 다시 골라 주세요. 아무것도 올리지 않았습니다.`,
+          ? "더 올릴 자리가 없어요. 목록에서 쓰지 않는 전사본을 지우고 다시 올려 주세요. 아무것도 올리지 않았어요."
+          : `${remaining}건만 더 올릴 수 있어요. 파일을 ${n}개 골랐으니 ${n - remaining}개를 빼고 다시 골라 주세요. 아무것도 올리지 않았어요.`,
     };
 
   const items: BatchItem[] = [];
@@ -62,7 +62,7 @@ export async function runBatch(inputs: BatchInput[], remaining: number, { parse,
     try {
       result = await save(text);
     } catch {
-      result = { problems: [{ message: "올리지 못했습니다. 인터넷 연결을 확인한 뒤 이 파일만 다시 올려 주세요." }] };
+      result = { problems: [{ message: "연결이 끊겨서 올리지 못했어요. 인터넷 연결을 확인하고 이 파일만 다시 올려 주세요." }] };
     }
     if (result.problems.length > 0) {
       fail(name, ...result.problems);
@@ -83,9 +83,9 @@ export async function runBatch(inputs: BatchInput[], remaining: number, { parse,
 function conflict(parsed: Extract<Parsed, { ok: true }>, assignedAutomatically: boolean): string {
   const label = parsed.label;
   if (!assignedAutomatically)
-    return `참가자 ${label} 전사본이 이미 있습니다. 같은 묶음에서 먼저 올린 파일을 저장했습니다. 바꾸려면 목록에서 먼저 지운 뒤 다시 올려 주세요.`;
+    return `참가자 ${label} 전사본이 이미 있어요. 같은 묶음에서 먼저 올린 파일을 저장했어요. 바꾸려면 목록에서 먼저 지우고 다시 올려 주세요.`;
   // 번호 없는 형식의 머리말 라벨이면 머리말을 지워 다른 글자로 저장할 수 있다. 번호 형식은 발언 번호에 라벨이 들어 있어 라벨과 번호를 바꿔야 한다.
   return parsed.notes.numbersAdded
-    ? `같은 묶음의 다른 파일에 참가자 ${label} 라벨이 자동으로 붙었습니다. 이 파일의 머리말을 지우면 다른 글자로 저장됩니다.`
-    : `같은 묶음의 다른 파일에 참가자 ${label} 라벨이 자동으로 붙었습니다. 이 파일은 번호(${label}-01…)가 이미 ${label}로 매겨져 있어 저장하지 않았습니다. 이 파일의 라벨과 번호를 다른 글자로 바꾸거나, 목록에서 ${label} 전사본을 지운 뒤 이 파일만 다시 올려 주세요.`;
+    ? `같은 묶음의 다른 파일에 참가자 ${label} 라벨이 자동으로 붙었어요. 이 파일의 머리말을 지우면 다른 글자로 저장돼요.`
+    : `같은 묶음의 다른 파일에 참가자 ${label} 라벨이 자동으로 붙었어요. 이 파일은 번호가 ${label}-01…로 정해져 있어 저장하지 못했어요. 파일의 라벨과 번호를 다른 글자로 바꾸거나, 목록에서 ${label} 전사본을 지우고 이 파일만 다시 올려 주세요.`;
 }

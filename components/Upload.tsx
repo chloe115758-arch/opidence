@@ -26,7 +26,7 @@ function Problems({ list }: { list: Problem[] }) {
           </ul>
         }
       >
-        저장하지 않았습니다. 아래를 고친 뒤 다시 시도해 주세요.
+        실행하지 못했어요. 아래 내용을 확인하고 다시 시도해 주세요.
       </SectionMessage>
     </div>
   );
@@ -35,14 +35,14 @@ function Problems({ list }: { list: Problem[] }) {
 // 파일을 읽어 batch 입력으로 만든다. 읽지 못했거나 txt가 아니거나 너무 크면 error에 이유를 담는다(그 파일만 실패로 표시한다).
 async function read(file: File): Promise<BatchInput> {
   const name = file.name;
-  if (!/\.txt$/i.test(name)) return { name, text: "", error: "txt 파일만 올릴 수 있습니다. 메모장 등에서 txt로 저장한 파일을 골라 주세요." };
+  if (!/\.txt$/i.test(name)) return { name, text: "", error: "txt 파일만 올릴 수 있어요. 메모장 등에서 txt로 저장한 파일을 골라 주세요." };
   // 10,000자는 UTF-8로 40KB를 넘지 않는다. 그보다 큰 파일은 읽지 않고 돌려보낸다.
   if (file.size > MAX_CHARS * 4)
-    return { name, text: "", error: `파일당 ${MAX_CHARS.toLocaleString()}자까지 올릴 수 있습니다. 파일이 너무 큽니다. 내용을 줄이거나 나누어 올려 주세요.` };
+    return { name, text: "", error: `파일이 너무 커요. 한 파일에 ${MAX_CHARS.toLocaleString()}자까지 올릴 수 있으니 내용을 줄이거나 나누어 올려 주세요.` };
   try {
     return { name, text: await file.text() };
   } catch {
-    return { name, text: "", error: "파일을 읽지 못했습니다. 파일을 다시 골라 주세요." };
+    return { name, text: "", error: "파일을 읽지 못했어요. 파일을 다시 골라 주세요." };
   }
 }
 
@@ -75,7 +75,7 @@ function UploadResult({ outcome, onClose }: { outcome: BatchResult; onClose: () 
       </div>
       {failed.length > 0 && (
         <section>
-          <h3 className="text-sm font-semibold text-fg-2">저장하지 않은 파일 {failed.length}개 · 아래를 고친 뒤 이 파일만 다시 올려 주세요</h3>
+          <h3 className="text-sm font-semibold text-fg-2">저장하지 못한 파일 {failed.length}개 · 아래 내용을 고치고 이 파일만 다시 올려 주세요</h3>
           <ul className="mt-2 space-y-2">
             {failed.map((f) => (
               <li key={f.name} className="rounded-xl border border-line-strong bg-fill px-4 py-3">
@@ -136,7 +136,7 @@ export function UploadForm({ remaining }: { remaining: number }) {
         setOutcome(result);
         if (result.rejected === null && result.items.some((x) => x.status === "saved")) await refreshAfterUpload();
       } catch {
-        setOutcome({ rejected: "올리지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주세요." });
+        setOutcome({ rejected: "연결이 끊겨서 올리지 못했어요. 인터넷 연결을 확인하고 다시 올려 주세요." });
       } finally {
         setProgress(null);
       }
@@ -208,7 +208,7 @@ export function ActionButton({
       try {
         setProblems(await action());
       } catch {
-        setProblems([{ message: "요청하지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주세요." }]);
+        setProblems([{ message: "연결이 끊겨서 요청하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요." }]);
       }
     });
   };

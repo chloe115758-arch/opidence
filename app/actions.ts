@@ -26,7 +26,7 @@ async function save(raw: string): Promise<UploadResult> {
   const first = parseTranscript(raw);
   if (!first.ok) return { problems: first.problems }; // 형식이 틀리면 작업 공간(익명 사용자)도 만들지 않는다
   const db = await workspace();
-  if (!db) return { problems: [{ message: "작업 공간을 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요." }] };
+  if (!db) return { problems: [{ message: "작업 공간을 만들지 못했어요. 잠시 뒤 다시 시도해 주세요." }] };
 
   // 라벨이 없는 파일은 지금 올라가 있는 라벨 중 비어 있는 글자를 붙인다. 동시에 올려 같은 글자를 잡으면 한 번 더 시도한다.
   for (let attempt = 0; ; attempt++) {
@@ -41,7 +41,7 @@ async function save(raw: string): Promise<UploadResult> {
 
 export async function upload(text: string): Promise<UploadResult> {
   if (typeof text !== "string" || text.length > MAX_CHARS * 2)
-    return { problems: [{ message: `파일당 ${MAX_CHARS.toLocaleString()}자까지 올릴 수 있습니다. 내용을 줄이거나 나누어 올려 주세요.` }] };
+    return { problems: [{ message: `파일이 너무 커요. 한 파일에 ${MAX_CHARS.toLocaleString()}자까지 올릴 수 있으니 내용을 줄이거나 나누어 올려 주세요.` }] };
   return save(text); // 화면을 새로 고치는 일은 파일 여러 개를 모두 올린 뒤 refreshAfterUpload가 한 번만 한다
 }
 
@@ -67,10 +67,10 @@ export async function loadSamples(): Promise<Problem[]> {
 
 export async function remove(label: string): Promise<Problem[]> {
   const db = await createClient();
-  if (typeof label !== "string" || !(await db.auth.getClaims()).data) return [{ message: "지울 전사본을 찾지 못했습니다." }];
+  if (typeof label !== "string" || !(await db.auth.getClaims()).data) return [{ message: "지울 전사본을 찾지 못했어요. 화면을 새로 고쳐 보세요." }];
   // 발언과 그 발언을 가리키는 근거는 DB의 on delete cascade로 함께 지워진다
   const { error } = await db.from("transcripts").delete().eq("participant_label", label);
   if (error) console.error("전사본 삭제 실패:", error.code, error.message);
   revalidatePath("/", "layout");
-  return error ? [{ message: "지우지 못했습니다. 잠시 뒤 다시 시도해 주세요." }] : [];
+  return error ? [{ message: "지우지 못했어요. 잠시 뒤 다시 시도해 주세요." }] : [];
 }

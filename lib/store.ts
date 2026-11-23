@@ -27,11 +27,11 @@ export async function saveTranscript(
 }
 
 function explain(error: DbError, label: string): string {
-  if (error.code === "23505") return `참가자 ${label} 전사본이 이미 있습니다. 목록에서 먼저 지운 뒤 다시 올려 주세요.`;
+  if (error.code === "23505") return `참가자 ${label} 전사본이 이미 있어요. 바꾸려면 목록에서 먼저 지우고 다시 올려 주세요.`;
   if (error.code === "23514" && error.message.includes("10건"))
-    return "전사본은 10건까지 올릴 수 있습니다. 목록에서 쓰지 않는 전사본을 지운 뒤 다시 올려 주세요.";
+    return "전사본은 10건까지 올릴 수 있어요. 목록에서 쓰지 않는 전사본을 지우고 다시 올려 주세요.";
   console.error("전사본 저장 실패:", error.code, error.message);
-  return "저장하지 못했습니다. 잠시 뒤 다시 시도해 주세요.";
+  return "저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.";
 }
 
 export async function listTranscripts(db: SupabaseClient): Promise<TranscriptSummary[]> {

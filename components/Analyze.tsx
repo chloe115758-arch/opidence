@@ -38,7 +38,7 @@ export function Analyze({ remaining, disabled, hasInsights }: { remaining: numbe
   };
 
   const run = () => {
-    if (hasInsights && !window.confirm("다시 분석하면 지금 묶음과 근거를 지우고 새로 만듭니다. 분석할 때마다 묶음이 조금 달라질 수 있습니다. 계속할까요?")) return;
+    if (hasInsights && !window.confirm("다시 분석하면 지금 묶음과 근거를 지우고 새로 만들어요. 분석할 때마다 묶음이 조금 달라질 수 있어요. 오늘 남은 횟수도 1회 줄어요. 계속할까요?")) return;
     execute();
   };
 
@@ -50,7 +50,7 @@ export function Analyze({ remaining, disabled, hasInsights }: { remaining: numbe
         </Button>
         <p className="text-sm text-fg-2">
           오늘 남은 분석 <span className="font-semibold text-fg">{remaining}회</span>
-          <span className="text-fg-3"> · 하루 10회, 자정에 다시 채워집니다</span>
+          <span className="text-fg-3"> · 하루 10회예요. 자정에 다시 채워져요</span>
         </p>
       </div>
       <div aria-live="polite">
@@ -58,7 +58,7 @@ export function Analyze({ remaining, disabled, hasInsights }: { remaining: numbe
           // 실측(analysis_runs.duration_ms, 성공 3건): 15.6초~25.6초, 평균 19.7초. 출력이 길면 더 걸린다(25.6초는 출력 2,556토큰).
           // 스크린 리더가 매초 읽지 않도록 초 표시는 aria-hidden으로 두고, 안내 문장만 읽게 한다.
           <SectionMessage variant="info">
-            {seconds > SLOW_AFTER ? "조금 더 걸리고 있어요. 창을 닫지 말고 기다려 주세요." : "발언을 읽고 주제를 묶고 있습니다. 보통 15~30초 걸립니다."}{" "}
+            {seconds > SLOW_AFTER ? "조금 더 걸리고 있어요. 창을 닫지 말고 기다려 주세요." : "발언을 읽고 주제를 묶고 있어요. 보통 15~30초 걸려요."}{" "}
             <span aria-hidden="true">· 분석하는 중… {seconds}초</span>
           </SectionMessage>
         )}

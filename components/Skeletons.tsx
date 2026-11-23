@@ -90,7 +90,7 @@ export function AnalyzeSkeleton() {
           <Button size="medium">다시 분석하기</Button>
         </Bone>
         <p className="text-sm text-fg-2">
-          <Bone>오늘 남은 분석 10회 · 하루 10회, 자정에 다시 채워집니다</Bone>
+          <Bone>오늘 남은 분석 10회 · 하루 10회예요. 자정에 다시 채워져요</Bone>
         </p>
       </div>
       <div />
@@ -161,7 +161,7 @@ export function SearchSkeleton() {
           ))}
         </p>
         <p className="text-fg-2">
-          <Bone>오늘 남은 검색 30회 · 하루 30회, 자정에 다시 채워집니다</Bone>
+          <Bone>오늘 남은 검색 30회 · 하루 30회예요. 자정에 다시 채워져요</Bone>
         </p>
       </div>
       <div />

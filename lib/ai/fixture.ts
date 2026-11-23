@@ -12,13 +12,13 @@ export function mockClusters(transcripts: Transcript[]) {
   return {
     output: {
       clusters: [
-        { title: "① 정상: 모두 원문과 일치", summary: "참가자 발언 ID만 담은 묶음", utterance_ids: ids(a, b, c) },
-        { title: "② 섞임: 정상 1 · 없는 ID 1 · 진행자 ID 1", summary: "일부만 근거로 인정돼야 한다", utterance_ids: ids(d, "Z-99", mod) },
+        { title: "① 정상: 모두 원문과 일치", summary: "참가자 발언 번호만 담은 묶음", utterance_ids: ids(a, b, c) },
+        { title: "② 섞임: 정상 1 · 없는 번호 1 · 진행자 번호 1", summary: "일부만 근거로 인정돼야 한다", utterance_ids: ids(d, "Z-99", mod) },
         { title: "③ 전부 탈락", summary: "근거가 하나도 인정되지 않아야 한다", utterance_ids: ids("Z-98", mod) },
         // 실제 ID를 소문자·앞 공백으로 바꾼 것. 고쳐 주지 않고 not_found여야 한다.
-        { title: "④ 변형 ID", summary: "비슷한 ID를 고쳐 주지 않는다", utterance_ids: ids(a?.toLowerCase(), b && ` ${b}`) },
-        { title: "⑤ ID 없음", summary: "AI가 발언 ID를 붙이지 않은 경우", utterance_ids: [] },
-        { title: "⑥ 중복 ID", summary: "같은 ID가 두 번 오면 하나로 합친다", utterance_ids: ids(a, a) },
+        { title: "④ 변형 번호", summary: "비슷한 번호를 고쳐 주지 않는다", utterance_ids: ids(a?.toLowerCase(), b && ` ${b}`) },
+        { title: "⑤ 번호 없음", summary: "AI가 발언 번호를 붙이지 않은 경우", utterance_ids: [] },
+        { title: "⑥ 중복 번호", summary: "같은 번호가 두 번 오면 하나로 합친다", utterance_ids: ids(a, a) },
       ],
     },
     inputTokens: null,
