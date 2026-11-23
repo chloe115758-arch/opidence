@@ -7,6 +7,7 @@ import { CiteLink } from "@/components/CiteLink";
 import { EXAMPLES } from "@/components/examples";
 import { Quote } from "@/components/Quote";
 import type { Checked } from "@/lib/evidence";
+import { failure } from "@/lib/failure";
 
 const MAX_QUESTION = 200; // lib/answer.ts의 MAX_QUESTION과 같다(서버가 다시 검사한다). 서버 전용 모듈이 아니어도 클라이언트 번들에 넣지 않으려고 따로 둔다.
 const SLOW_AFTER = 30; // 이 초를 넘으면 "조금 더 걸리고 있어요"로 바꾼다.
@@ -16,6 +17,7 @@ const SLOW_AFTER = 30; // 이 초를 넘으면 "조금 더 걸리고 있어요"�
 export function Search({ remaining, disabled, pendingIndex, view }: { remaining: number; disabled: boolean; pendingIndex: number; view: "a" | "b" }) {
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<AskResult | null>(null);
+  const [lastAsked, setLastAsked] = useState(""); // "다시 시도"가 그대로 다시 실행할 마지막 질문(입력 칸을 고쳐도 바뀌지 않는다)
   const [seconds, setSeconds] = useState(0);
   const [pending, start] = useTransition();
 
@@ -26,17 +28,24 @@ export function Search({ remaining, disabled, pendingIndex, view }: { remaining:
     return () => clearInterval(timer);
   }, [pending]);
 
-  const run = (e: React.FormEvent) => {
-    e.preventDefault();
+  const execute = (q: string) => {
+    setLastAsked(q);
     setResult(null);
     setSeconds(0);
     start(async () => {
       try {
-        setResult(await ask(question));
+        setResult(await ask(q));
       } catch {
-        setResult({ ok: false, message: "찾지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주세요." });
+        // 서버에 닿지 못한 경우(연결 끊김). 입력한 질문은 그대로 남아 있다.
+        const f = failure("network", { task: "search", dev: false });
+        setResult({ ok: false, message: f.message, retry: f.retry });
       }
     });
+  };
+
+  const run = (e: React.FormEvent) => {
+    e.preventDefault();
+    execute(question);
   };
 
   return (
@@ -87,7 +96,17 @@ export function Search({ remaining, disabled, pendingIndex, view }: { remaining:
             <span aria-hidden="true">· 찾는 중… {seconds}초</span>
           </SectionMessage>
         )}
-        {result && !result.ok && !pending && <SectionMessage variant="negative">{result.message}</SectionMessage>}
+        {result && !result.ok && !pending && (
+          <div className="space-y-3">
+            <SectionMessage variant="negative">{result.message}</SectionMessage>
+            {/* 다시 해서 풀릴 수 있는 실패에만 버튼을 둔다. 키·모델·크레딧·한도처럼 눌러도 똑같이 실패하는 경우에는 두지 않는다. */}
+            {result.retry && (
+              <Button size="small" onClick={() => execute(lastAsked)}>
+                다시 시도
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {result?.ok && !pending && <Result result={result} view={view} />}

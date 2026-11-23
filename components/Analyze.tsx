@@ -3,6 +3,7 @@
 import { Button, SectionMessage } from "@montage-ui/core";
 import { useEffect, useState, useTransition } from "react";
 import { analyze } from "@/app/insights/actions";
+import { failure } from "@/lib/failure";
 
 // 이 초를 넘으면 "조금 더 걸리고 있어요"로 바꾼다.
 const SLOW_AFTER = 30;
@@ -10,7 +11,7 @@ const SLOW_AFTER = 30;
 // 분석 버튼, 오늘 남은 횟수, 진행 문구, 실패 안내.
 // 호출이 한 번이라 중간 진행률은 알 수 없다. 고정 문구와 지난 시간만 보여 준다.
 export function Analyze({ remaining, disabled, hasInsights }: { remaining: number; disabled: boolean; hasInsights: boolean }) {
-  const [message, setMessage] = useState<string | null>(null);
+  const [failed, setFailed] = useState<{ message: string; retry: boolean } | null>(null);
   const [seconds, setSeconds] = useState(0);
   const [pending, start] = useTransition();
 
@@ -21,17 +22,24 @@ export function Analyze({ remaining, disabled, hasInsights }: { remaining: numbe
     return () => clearInterval(timer);
   }, [pending]);
 
-  const run = () => {
-    if (hasInsights && !window.confirm("다시 분석하면 지금 묶음과 근거를 지우고 새로 만듭니다. 분석할 때마다 묶음이 조금 달라질 수 있습니다. 계속할까요?")) return;
-    setMessage(null);
+  // 실제 분석 요청. "다시 시도"는 확인 창 없이 같은 요청을 다시 보낸다(이미 확인을 받았다).
+  const execute = () => {
+    setFailed(null);
     setSeconds(0);
     start(async () => {
       try {
-        setMessage(await analyze());
+        const result = await analyze();
+        if (!result.ok) setFailed({ message: result.message, retry: result.retry });
       } catch {
-        setMessage("분석하지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.");
+        const f = failure("network", { task: "analysis", dev: false });
+        setFailed({ message: f.message, retry: f.retry });
       }
     });
+  };
+
+  const run = () => {
+    if (hasInsights && !window.confirm("다시 분석하면 지금 묶음과 근거를 지우고 새로 만듭니다. 분석할 때마다 묶음이 조금 달라질 수 있습니다. 계속할까요?")) return;
+    execute();
   };
 
   return (
@@ -54,7 +62,17 @@ export function Analyze({ remaining, disabled, hasInsights }: { remaining: numbe
             <span aria-hidden="true">· 분석하는 중… {seconds}초</span>
           </SectionMessage>
         )}
-        {message && !pending && <SectionMessage variant="negative">{message}</SectionMessage>}
+        {failed && !pending && (
+          <div className="space-y-3">
+            <SectionMessage variant="negative">{failed.message}</SectionMessage>
+            {/* 다시 해서 풀릴 수 있는 실패에만 버튼을 둔다(lib/failure.ts) */}
+            {failed.retry && (
+              <Button size="small" onClick={execute}>
+                다시 시도
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

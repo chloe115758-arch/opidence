@@ -34,6 +34,7 @@ export type Context = {
   dev: boolean;
   stage?: Stage; // kind가 "model"일 때 개발 문구가 어느 환경 변수를 가리킬지 정한다. 기본은 답변 단계.
   max?: number; // kind가 "limit"일 때 하루 횟수
+  existing?: boolean; // 분석에서 기존 묶음이 있는가. 있을 때만 "기존 묶음은 그대로…" 문장을 붙인다(없는데 그렇게 말하면 어색하다)
 };
 
 type ApiError = { name?: string; status?: number; code?: string };
@@ -53,7 +54,7 @@ const SERVICE_SIDE = "서비스 쪽 문제라 직접 고칠 수는 없어요. �
 const NOT_COUNTED = "이번 시도는 횟수에서 빠졌어요.";
 const COUNTED = "이번 시도는 오늘 횟수에 포함돼요.";
 
-export function failure(kind: FailureKind, { task, dev, stage = "answer", max }: Context): Failure {
+export function failure(kind: FailureKind, { task, dev, stage = "answer", max, existing = false }: Context): Failure {
   const search = task === "search";
   const couldNot = search ? "찾지 못했어요" : "분석하지 못했어요"; // ~하지 못했어요
   const cannotNow = search ? "찾을 수 없어요" : "분석할 수 없어요"; // ~할 수 없어요
@@ -94,13 +95,13 @@ export function failure(kind: FailureKind, { task, dev, stage = "answer", max }:
       return make(
         search
           ? `답변을 제대로 만들지 못했어요. 다시 시도해 주세요. ${COUNTED}`
-          : `분석 결과를 제대로 만들지 못해 저장하지 않았어요. 기존 묶음은 그대로예요. 다시 시도해 주세요. ${COUNTED}`,
+          : `분석 결과를 제대로 만들지 못해 저장하지 않았어요. ${existing ? "기존 묶음은 그대로예요. " : ""}다시 시도해 주세요. ${COUNTED}`,
         true,
         true,
       );
     case "save":
       if (search) throw new Error("save는 분석에서만 쓴다");
-      return make(`분석 결과를 저장하지 못했어요. 기존 묶음은 그대로 있어요. 다시 시도해 주세요. ${COUNTED}`, true, true);
+      return make(`분석 결과를 저장하지 못했어요. ${existing ? "기존 묶음은 그대로 있어요. " : ""}다시 시도해 주세요. ${COUNTED}`, true, true);
     case "verify":
       if (!search) throw new Error("verify는 검색에서만 쓴다");
       return make(`답변이 원문과 맞는지 확인하지 못했어요. 잠시 뒤 다시 시도해 주세요. ${NOT_COUNTED}`, true, false);

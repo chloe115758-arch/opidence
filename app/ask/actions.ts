@@ -6,29 +6,33 @@ import { aiConfig, mocking } from "@/lib/ai/cluster";
 import { embedConfig, embedTexts, ensureEmbeddings } from "@/lib/ai/embed";
 import { MAX_QUESTION, parseAnswer } from "@/lib/answer";
 import { checkAnswer, type AnsweredSentence } from "@/lib/evidence";
-import { listTranscripts, loadForAnalysis, matchUtterances, utterancesById, utterancesByPk } from "@/lib/store";
+import { failure, failureFromError } from "@/lib/failure";
+import { DAILY_SEARCHES, listTranscripts, loadForAnalysis, matchUtterances, utterancesById, utterancesByPk } from "@/lib/store";
 import { createClient } from "@/lib/supabase/server";
 import type { Utterance } from "@/lib/types";
 
 export type AskResult =
-  | { ok: false; message: string }
+  // retry: 다시 해서 풀릴 수 있는 실패일 때만 true. 화면은 true일 때만 "다시 시도" 버튼을 보여 준다(lib/failure.ts).
+  | { ok: false; message: string; retry: boolean }
   // sentences: 요약 문장과 근거(원문은 DB에서 ID로 읽은 것). found: 질문과 가까운 순으로 가져온 발언 목록. indexed: 이번에 새로 준비한 발언 수.
   | { ok: true; sentences: AnsweredSentence[]; found: Utterance[]; indexed: number };
 
 // 버튼으로 실행한다. 질문과 답변 문장은 저장하지 않는다: search_runs에는 횟수·토큰·시간·번호만 남긴다.
 export async function ask(question: string): Promise<AskResult> {
-  const fail = (message: string): AskResult => ({ ok: false, message });
+  const fail = (message: string, retry = false): AskResult => ({ ok: false, message, retry });
+  // 개발 환경에서만 원인(키, 모델 이름, 크레딧)을 문구에 쓴다. 배포에서는 서버 기록(console.error)에만 남는다.
+  const dev = process.env.NODE_ENV !== "production";
+  const fromFailure = (f: ReturnType<typeof failure>) => fail(f.message, f.retry);
   const q = typeof question === "string" ? question.trim() : "";
   if (!q) return fail("찾고 싶은 내용을 입력해 주세요.");
-  if (q.length > MAX_QUESTION) return fail(`${MAX_QUESTION}자 이내로 써 주세요. 지금은 ${q.length}자입니다.`);
+  if (q.length > MAX_QUESTION) return fail(`${MAX_QUESTION}자까지 쓸 수 있어요. 지금은 ${q.length}자예요.`);
 
   const db = await createClient();
   if (!(await db.auth.getClaims()).data || (await listTranscripts(db)).length === 0) return fail("전사본을 먼저 올려 주세요.");
 
   const config = aiConfig();
   const embedder = embedConfig();
-  if (!config || !embedder)
-    return fail("검색 설정이 되어 있지 않습니다. 서버 환경 변수 OPENAI_API_KEY, OPENAI_MODEL, OPENAI_EMBEDDING_MODEL을 넣고 다시 시작해 주세요.");
+  if (!config || !embedder) return fromFailure(failure("setup", { task: "search", dev }));
   const prompt = await loadAnswerPrompt();
 
   // OpenAI를 부르기 전에 기록부터 남긴다. 하루 30회 제한은 이 행을 넣을 때 DB가 건다.
@@ -38,9 +42,9 @@ export async function ask(question: string): Promise<AskResult> {
     .select("id")
     .single();
   if (refused) {
-    if (refused.code === "23514") return fail("오늘 검색 30회를 모두 썼습니다. 내일(한국 시간 자정 이후) 다시 찾을 수 있습니다.");
+    if (refused.code === "23514") return fromFailure(failure("limit", { task: "search", dev, max: DAILY_SEARCHES }));
     console.error("검색 기록 저장 실패:", refused.code, refused.message);
-    return fail("검색을 시작하지 못했습니다. 잠시 뒤 다시 시도해 주세요.");
+    return fromFailure(failure("start", { task: "search", dev }));
   }
   const started = Date.now();
   const finish = async (result: Record<string, unknown>) => {
@@ -76,25 +80,14 @@ export async function ask(question: string): Promise<AskResult> {
     const err = e as { name?: string; status?: number; code?: string };
     console.error("검색 실패:", stage, err.name, err.status, err.code);
     await finish({ status: "api_error", ...spent });
-    const env = stage === "embed" ? "OPENAI_EMBEDDING_MODEL" : "OPENAI_MODEL";
-    const why =
-      err.code === "model_not_found" || err.status === 404
-        ? `${env}에 적은 모델을 찾지 못했습니다. 모델 이름은 소문자까지 정확히 적어 주세요.`
-        : err.status === 401
-          ? "OPENAI_API_KEY가 올바르지 않습니다."
-          : err.code === "insufficient_quota"
-            ? "OpenAI 크레딧이 부족합니다."
-            : err.status === 400
-              ? "OpenAI가 요청 형식을 받지 않았습니다."
-              : "잠시 뒤 다시 시도해 주세요.";
-    return fail(`찾지 못했습니다. ${why} 오늘 남은 검색 횟수는 줄지 않았습니다.`);
+    return fromFailure(failureFromError(e, { task: "search", dev, stage }));
   }
   const tokens = { ...spent, input_tokens: response.inputTokens, output_tokens: response.outputTokens };
 
   const sentences = parseAnswer(response.output);
   if (!sentences) {
     await finish({ status: "format_error", ...tokens, retrieved_count: found.length });
-    return fail("답변이 형식에 맞지 않아 보여 드리지 않았습니다. 다시 찾아 주세요.");
+    return fromFailure(failure("format", { task: "search", dev }));
   }
 
   // 원문 대조: 문장이 가리킨 발언 ID를 DB에서 정확히 일치하는 것만 읽어 온다. 인용 문장은 이 원문만 쓴다.
@@ -105,7 +98,7 @@ export async function ask(question: string): Promise<AskResult> {
   } catch (e) {
     console.error("원문 대조 실패:", (e as Error).message);
     await finish({ status: "api_error", ...tokens, retrieved_count: found.length });
-    return fail("원문과 대조하지 못했습니다. 잠시 뒤 다시 시도해 주세요. 오늘 남은 검색 횟수는 줄지 않았습니다.");
+    return fromFailure(failure("verify", { task: "search", dev }));
   }
 
   await finish({
