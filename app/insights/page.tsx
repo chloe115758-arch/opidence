@@ -15,7 +15,7 @@ export default async function Insights() {
     <div className="space-y-8">
       <div>
         <Typography as="h1" variant="title3" weight="bold" display="block">
-          주제 묶음
+          주제 분류
         </Typography>
         <p className="mt-2 text-fg-2">비슷한 발언을 묶은 인사이트입니다. 인용을 누르면 원문 위치로 갑니다.</p>
       </div>

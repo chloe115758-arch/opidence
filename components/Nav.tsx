@@ -6,8 +6,8 @@ import { usePathname } from "next/navigation";
 
 const items = [
   { href: "/", label: "전사본" },
-  { href: "/insights", label: "주제 묶음" },
-  { href: "/ask", label: "질문·답변" },
+  { href: "/insights", label: "주제 분류" },
+  { href: "/ask", label: "검색 · 찾기" },
 ];
 
 export function Nav() {

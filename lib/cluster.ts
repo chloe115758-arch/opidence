@@ -1,4 +1,4 @@
-// 주제 묶음에서 AI 호출과 무관한 부분: 보낼 글 만들기, 받은 응답의 형식 검사, 프롬프트 파일 읽기.
+// 주제 분류에서 AI 호출과 무관한 부분: 보낼 글 만들기, 받은 응답의 형식 검사, 프롬프트 파일 읽기.
 // OpenAI를 부르는 코드는 lib/ai/cluster.ts에 따로 둔다(서버 전용).
 import { z } from "zod";
 import type { Transcript } from "./types";

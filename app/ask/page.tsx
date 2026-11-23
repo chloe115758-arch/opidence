@@ -30,7 +30,7 @@ export default async function Ask({ searchParams }: { searchParams: Promise<{ q?
 
       <div>
         <Typography as="h1" variant="title3" weight="bold" display="block">
-          질문·답변
+          검색 · 찾기
         </Typography>
         <p className="mt-2 text-fg-2">전사본에 있는 내용만 답합니다. 근거를 찾지 못하면 찾지 못했다고 알려 드립니다.</p>
       </div>
@@ -38,7 +38,7 @@ export default async function Ask({ searchParams }: { searchParams: Promise<{ q?
       <form action="/ask" className="flex flex-wrap gap-3">
         <input type="hidden" name="view" value={view} />
         <label htmlFor="q" className="sr-only">
-          질문
+          찾고 싶은 내용
         </label>
         <div className="min-w-0 flex-1">
           <TextField
@@ -51,7 +51,7 @@ export default async function Ask({ searchParams }: { searchParams: Promise<{ q?
           />
         </div>
         <Button type="submit" size="large">
-          질문하기
+          찾기
         </Button>
       </form>
 

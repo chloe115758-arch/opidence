@@ -77,7 +77,7 @@ export async function getTranscript(db: SupabaseClient, label: string): Promise<
   };
 }
 
-// ───────────── 주제 묶음 ─────────────
+// ───────────── 주제 분류 ─────────────
 
 export const DAILY_ANALYSES = 10;
 
