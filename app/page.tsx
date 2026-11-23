@@ -1,15 +1,17 @@
 import { ContentBadge, FallbackView, FallbackViewActionArea, FallbackViewContent, FallbackViewText, Typography } from "@montage-ui/core";
 import Link from "next/link";
+import { connection } from "next/server";
+import { Suspense } from "react";
 import { loadSamples, remove } from "@/app/actions";
 import { LogoMark } from "@/components/Logo";
+import { TranscriptListSkeleton, UploadBoxSkeleton } from "@/components/Skeletons";
 import { ActionButton, UploadForm } from "@/components/Upload";
-import { listTranscripts } from "@/lib/store";
-import { createClient } from "@/lib/supabase/server";
+import { getTranscripts } from "@/lib/data";
 import { MAX_CHARS, MAX_TRANSCRIPTS } from "@/lib/transcript";
 
-export default async function Home() {
-  const list = await listTranscripts(await createClient());
-
+// 제목과 안내(규칙)는 데이터가 없어도 바로 그린다. 로그인 세션을 확인하는 부분(남은 자리, 목록)만 Suspense 안에서 읽는다.
+// 각 구역은 맨 앞에서 connection()을 기다려 "요청이 올 때 그리는 부분"임을 알린다(개발 서버의 Date.now() 경고를 없앤다).
+export default function Home() {
   return (
     <div className="space-y-8">
       <div>
@@ -41,9 +43,29 @@ export default async function Home() {
             <li>이미 <span className="font-mono">A-01 진행자: 질문</span>처럼 번호가 있는 파일도 그대로 올릴 수 있습니다.</li>
           </ul>
         </details>
-        <UploadForm remaining={Math.max(0, MAX_TRANSCRIPTS - list.length)} />
+        <Suspense fallback={<UploadBoxSkeleton />}>
+          <UploadBox />
+        </Suspense>
       </section>
 
+      <Suspense fallback={<TranscriptListSkeleton />}>
+        <TranscriptList />
+      </Suspense>
+    </div>
+  );
+}
+
+async function UploadBox() {
+  await connection();
+  const list = await getTranscripts();
+  return <UploadForm remaining={Math.max(0, MAX_TRANSCRIPTS - list.length)} />;
+}
+
+async function TranscriptList() {
+  await connection();
+  const list = await getTranscripts();
+  return (
+    <>
       {list.length === 0 ? (
         <section className="flex justify-center rounded-2xl border border-dashed border-line-strong px-5">
           <FallbackView padding="compact">
@@ -91,6 +113,6 @@ export default async function Home() {
           </ul>
         </section>
       )}
-    </div>
+    </>
   );
 }
