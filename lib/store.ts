@@ -127,6 +127,14 @@ export async function listInsights(db: SupabaseClient): Promise<StoredInsight[]>
   }));
 }
 
+// 가장 최근에 성공(저장)한 분석의 시각(ISO). 지금 보이는 묶음이 이 분석의 결과다. 성공한 분석이 없으면 null. 리포트의 "분석한 날"에 쓴다.
+export async function lastAnalysisAt(db: SupabaseClient): Promise<string | null> {
+  if (!(await signedIn(db))) return null;
+  const { data, error } = await db.from("analysis_runs").select("created_at").eq("status", "ok").order("created_at", { ascending: false }).limit(1);
+  if (error) throw new Error(`분석 기록을 불러오지 못했습니다(${error.code}).`);
+  return data[0]?.created_at ?? null;
+}
+
 // 오늘(한국 시간 자정 기준) 남은 분석 횟수. 실제 제한은 DB 트리거가 건다. 이 값은 화면 표시용이다.
 export async function remainingAnalyses(db: SupabaseClient): Promise<number> {
   if (!(await signedIn(db))) return DAILY_ANALYSES;
