@@ -15,7 +15,7 @@ export default function Ask({ searchParams }: { searchParams: Promise<{ view?: s
         <Typography as="h1" variant="title3" weight="bold" display="block">
           검색 · 찾기
         </Typography>
-        <p className="mt-2 text-fg-2">전사본에 있는 내용만 답합니다. 근거를 찾지 못하면 찾지 못했다고 알려 드립니다.</p>
+        <p className="mt-2 text-fg-2">전사본에 있는 내용만 답해요. 근거를 찾지 못하면 찾지 못했다고 알려 드려요.</p>
       </div>
 
       <Suspense fallback={<SearchSkeleton />}>
@@ -43,7 +43,7 @@ async function AskBody({ searchParams }: { searchParams: Promise<{ view?: string
             title="전사본을 먼저 올려 주세요"
             description={
               <>
-                찾을 전사본이 없습니다.{" "}
+                찾을 전사본이 없어요.{" "}
                 <Link href="/" className="font-medium text-accent hover:underline">
                   전사본 화면
                 </Link>

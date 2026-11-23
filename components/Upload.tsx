@@ -172,7 +172,7 @@ export function UploadForm({ remaining }: { remaining: number }) {
         }}
       />
       <p className="text-sm text-fg-2">여기에 끌어다 놓거나 아래 버튼으로 고르세요.</p>
-      <p className="mt-1 mb-3 text-xs text-fg-3">{remaining > 0 ? `${remaining}건 더 올릴 수 있습니다` : "더 올릴 자리가 없습니다"}</p>
+      <p className="mt-1 mb-3 text-xs text-fg-3">{remaining > 0 ? `${remaining}건 더 올릴 수 있어요` : "더 올릴 자리가 없어요"}</p>
       <Button size="medium" loading={pending} onClick={() => input.current?.click()}>
         txt 파일 선택
       </Button>

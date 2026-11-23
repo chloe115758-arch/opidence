@@ -7,7 +7,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Opidence",
-  description: "인터뷰 인사이트마다 원문 근거를 붙여 정리합니다.",
+  description: "인터뷰를 주제별로 묶고, 묶음마다 원문 근거를 붙여 정리해요.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

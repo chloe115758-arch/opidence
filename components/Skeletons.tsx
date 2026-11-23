@@ -29,7 +29,7 @@ export function UploadBoxSkeleton() {
         <Bone>여기에 끌어다 놓거나 아래 버튼으로 고르세요.</Bone>
       </p>
       <p className="mt-1 mb-3 text-xs text-fg-3">
-        <Bone>9건 더 올릴 수 있습니다</Bone>
+        <Bone>9건 더 올릴 수 있어요</Bone>
       </p>
       <Bone>
         <Button size="medium">txt 파일 선택</Button>
@@ -123,7 +123,7 @@ export function InsightListSkeleton() {
             </Bone>
           </div>
           <p className="mt-2 break-words text-fg-2">
-            <Bone className="block w-full">묶음 요약이 들어올 자리예요. 비슷한 발언을 묶은 두 문장 정도의 요약입니다.</Bone>
+            <Bone className="block w-full">묶음 요약이 들어올 자리예요. 비슷한 발언을 묶은 두 문장 정도의 요약이에요.</Bone>
           </p>
           <div className="mt-5 space-y-3">
             <Bone className="block w-full">

@@ -16,7 +16,7 @@ export default function Insights() {
         <Typography as="h1" variant="title3" weight="bold" display="block">
           주제 분류
         </Typography>
-        <p className="mt-2 text-fg-2">비슷한 발언을 묶은 인사이트입니다. 인용을 누르면 원문 위치로 갑니다.</p>
+        <p className="mt-2 text-fg-2">비슷한 발언을 주제별로 묶었어요. 인용을 누르면 원문으로 가요.</p>
       </div>
 
       <Suspense fallback={<AnalyzeSkeleton />}>
@@ -52,7 +52,7 @@ async function InsightList() {
                   title="전사본을 먼저 올려 주세요"
                   description={
                     <>
-                      분석할 전사본이 없습니다.{" "}
+                      분석할 전사본이 없어요.{" "}
                       <Link href="/" className="font-medium text-accent hover:underline">
                         전사본 화면
                       </Link>
@@ -62,8 +62,8 @@ async function InsightList() {
                 />
               ) : (
                 <FallbackViewText
-                  title="아직 묶음이 없습니다"
-                  description={`올린 전사본 ${transcripts.length}건을 분석하면 비슷한 발언을 주제별로 묶어 보여 줍니다. 묶을 만한 주제가 없으면 분석해도 비어 있을 수 있습니다.`}
+                  title="아직 묶음이 없어요"
+                  description={`올린 전사본 ${transcripts.length}건을 분석하면 비슷한 발언을 주제별로 묶어 보여 줘요. 묶을 만한 주제가 없으면 분석해도 비어 있을 수 있어요.`}
                 />
               )}
             </FallbackViewContent>
@@ -95,7 +95,7 @@ async function InsightList() {
             <p className="mt-2 break-words text-fg-2">{insight.summary}</p>
             {insight.evidence.length === 0 ? (
               <p className="mt-5 rounded-xl border border-dashed border-line-strong bg-fill px-4 py-3 text-sm text-fg-2">
-                이 묶음에는 연결된 발언이 없습니다.
+                이 묶음에는 연결된 발언이 없어요.
               </p>
             ) : (
               <div className="mt-5 space-y-3">
