@@ -4,9 +4,10 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { Analyze } from "@/components/Analyze";
 import { LogoMark } from "@/components/Logo";
+import { ReportBar } from "@/components/ReportBar";
 import { Quote } from "@/components/Quote";
 import { AnalyzeSkeleton, InsightListSkeleton } from "@/components/Skeletons";
-import { getInsights, getRemainingAnalyses, getTranscripts } from "@/lib/data";
+import { getInsights, getLastAnalysisAt, getRemainingAnalyses, getTranscripts } from "@/lib/data";
 
 // 제목과 설명은 바로 그리고, 로그인 세션을 확인하는 부분(분석 영역, 묶음 목록)은 각각 Suspense 안에서 읽는다.
 export default function Insights() {
@@ -37,7 +38,7 @@ async function AnalyzeBox() {
 
 async function InsightList() {
   await connection();
-  const [transcripts, insights] = await Promise.all([getTranscripts(), getInsights()]);
+  const [transcripts, insights, analyzedAt] = await Promise.all([getTranscripts(), getInsights(), getLastAnalysisAt()]);
   const empty = transcripts.length === 0;
 
   return (
@@ -69,6 +70,14 @@ async function InsightList() {
             </FallbackViewContent>
           </FallbackView>
         </section>
+      )}
+
+      {insights.length > 0 && (
+        <ReportBar
+          insights={insights.map(({ title, summary, evidence }) => ({ title, summary, evidence }))}
+          transcriptCount={transcripts.length}
+          analyzedAt={analyzedAt}
+        />
       )}
 
       {insights.map((insight) => {
