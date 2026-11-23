@@ -31,9 +31,12 @@ async function save(raw: string): Promise<Problem[]> {
 export async function upload(text: string): Promise<Problem[]> {
   if (typeof text !== "string" || text.length > MAX_CHARS * 2)
     return [{ message: `파일당 ${MAX_CHARS.toLocaleString()}자까지 올릴 수 있습니다. 내용을 줄이거나 나누어 올려 주세요.` }];
-  const problems = await save(text);
+  return save(text); // 화면을 새로 고치는 일은 파일 여러 개를 모두 올린 뒤 refreshAfterUpload가 한 번만 한다
+}
+
+// 올리기를 모두 마친 뒤 목록과 남은 자리를 새로 고친다(파일마다 새로 그리지 않는다).
+export async function refreshAfterUpload(): Promise<void> {
   revalidatePath("/", "layout");
-  return problems;
 }
 
 export async function loadSamples(): Promise<Problem[]> {

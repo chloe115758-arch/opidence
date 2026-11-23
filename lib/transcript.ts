@@ -3,6 +3,8 @@
 import type { Utterance } from "./types";
 
 export const MAX_CHARS = 10000;
+// 사용자당 전사본 수. 실제 제한은 DB 트리거(transcripts_limit)가 건다. 이 값은 화면이 올리기 전에 안내하려고 쓴다.
+export const MAX_TRANSCRIPTS = 10;
 
 export type Problem = { line?: number; message: string };
 export type Parsed =

@@ -5,6 +5,7 @@ import { LogoMark } from "@/components/Logo";
 import { ActionButton, UploadForm } from "@/components/Upload";
 import { listTranscripts } from "@/lib/store";
 import { createClient } from "@/lib/supabase/server";
+import { MAX_CHARS, MAX_TRANSCRIPTS } from "@/lib/transcript";
 
 export default async function Home() {
   const list = await listTranscripts(await createClient());
@@ -23,11 +24,13 @@ export default async function Home() {
           전사본 올리기
         </Typography>
         <ul className="mt-2 mb-5 space-y-1 text-sm text-fg-2">
-          <li>txt 파일, 파일당 10,000자, 최대 10건까지 올릴 수 있습니다.</li>
+          <li>
+            txt 파일, 파일당 {MAX_CHARS.toLocaleString()}자, 최대 {MAX_TRANSCRIPTS}건까지 올릴 수 있습니다. 여러 파일을 한꺼번에 고르거나 끌어다 놓을 수 있습니다.
+          </li>
           <li>연락처·이메일 형태가 있으면 올리기 전에 알려 드립니다.</li>
           <li className="font-semibold text-fg">본문의 이름은 직접 확인해 주세요. 이름은 자동으로 찾지 못합니다.</li>
         </ul>
-        <UploadForm />
+        <UploadForm remaining={Math.max(0, MAX_TRANSCRIPTS - list.length)} />
       </section>
 
       {list.length === 0 ? (
