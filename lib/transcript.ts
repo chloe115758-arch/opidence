@@ -40,9 +40,9 @@ export function parseTranscript(raw: string): Parsed {
     const n = i + 1;
     if (!line) return;
 
-    for (const [name, pattern] of PII)
-      if (pattern.test(line))
-        problems.push({ line: n, message: `${name} 형태가 있습니다. 지우거나 '(${name})'처럼 바꾼 뒤 다시 올려 주세요.` });
+    // 한 줄이 여러 형태에 걸려도(예: 000000-1000000은 주민등록번호와 전화번호 형태) 안내는 한 줄에 하나로 합친다.
+    const found = PII.filter(([, pattern]) => pattern.test(line)).map(([name]) => name).join("·");
+    if (found) problems.push({ line: n, message: `${found} 형태가 있습니다. 지우거나 '(${found})'처럼 바꾼 뒤 다시 올려 주세요.` });
 
     const m = LINE.exec(line);
     if (!m) {
