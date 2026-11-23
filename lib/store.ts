@@ -12,23 +12,15 @@ type DbError = { code?: string; message: string };
 const signedIn = async (db: SupabaseClient) => !!(await db.auth.getClaims()).data;
 
 // 저장에 성공하면 null, 실패하면 사용자에게 보여 줄 문구를 돌려준다.
+// 전사본과 발언은 DB 함수 save_transcript 한 번으로 저장한다(한 트랜잭션: 둘 다 되거나 둘 다 안 된다).
 export async function saveTranscript(db: SupabaseClient, t: Extract<Parsed, { ok: true }>): Promise<string | null> {
-  const { data, error } = await db
-    .from("transcripts")
-    .insert({ participant_label: t.label, meta: t.meta, char_count: t.charCount })
-    .select("id")
-    .single();
-  if (error) return explain(error, t.label);
-
-  const { error: failed } = await db.from("utterances").insert(
-    t.utterances.map((u) => ({ transcript_id: data.id, utterance_id: u.id, seq: u.seq, speaker_role: u.role, text: u.text })),
-  );
-  if (failed) {
-    // shortcut: 두 번의 요청이라 한 트랜잭션이 아니다. 발언 저장이 실패하면 전사본을 지워 되돌린다. 이 삭제까지 실패하는 일이 생기면 DB 함수(rpc) 하나로 합친다.
-    await db.from("transcripts").delete().eq("id", data.id);
-    return explain(failed, t.label);
-  }
-  return null;
+  const { error } = await db.rpc("save_transcript", {
+    p_label: t.label,
+    p_meta: t.meta,
+    p_char_count: t.charCount,
+    p_utterances: t.utterances.map((u) => ({ utterance_id: u.id, seq: u.seq, speaker_role: u.role, text: u.text })),
+  });
+  return error ? explain(error, t.label) : null;
 }
 
 function explain(error: DbError, label: string): string {

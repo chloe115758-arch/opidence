@@ -8,6 +8,7 @@ Supabase(Postgres). SQL은 `supabase/migrations/`에 있고, 구조를 바꾸면
 | `0002_analysis.sql` | 분석 기록 테이블, 하루 10회 제한, 표시 순서 열, 인사이트를 한 번에 교체하는 함수 | SQL Editor에서 직접 실행 |
 | `0003_analysis_limit.sql` | 하루 횟수에서 `api_error`를 빼고, 끝난 분석 기록을 고칠 수 없게 잠금 | SQL Editor에서 직접 실행 |
 | `0004_search.sql` | pgvector 확장, 발언 임베딩 표, 비슷한 발언 찾기 함수, 검색 기록 표와 하루 30회 제한 | SQL Editor에서 직접 실행 (2026-11-23 실행, 확인 쿼리 통과) |
+| `0005_save_transcript.sql` | 전사본과 발언을 한 트랜잭션으로 저장하는 함수 | SQL Editor에서 직접 실행 (실행 전) |
 
 ## 관계
 
@@ -188,6 +189,10 @@ where r.status = 'ok' order by r.created_at desc, score desc;
 
 ## 함수
 
+### save_transcript(p_label, p_meta, p_char_count, p_utterances)
+
+전사본 1행과 발언 여러 행을 한 트랜잭션으로 저장한다. 발언 저장이 실패하면 전사본도 들어가지 않는다(예전에는 요청 두 번이라 실패하면 전사본을 지워 되돌렸고, 그 삭제가 실패하면 발언 없는 전사본이 남을 수 있었다). `p_utterances`는 `[{"utterance_id","seq","speaker_role","text"}, …]` 배열이고, 비어 있으면 거부한다. 호출한 사용자의 권한으로 실행되어(`security invoker`) RLS, 외래 키, 10건 제한(`transcripts_limit`), 같은 라벨 중복 검사가 직접 넣을 때와 똑같이 적용되고 같은 오류 코드(`23505`, `23514`)가 나온다. `owner_id`는 받지 않는다: 두 표의 기본값(`auth.uid()`)이 채운다. `authenticated`만 실행할 수 있고 `anon`은 실행할 수 없다.
+
 ### match_utterances(query_embedding, p_model, match_count)
 
 질문 벡터와 가까운 참가자 발언을 가까운 순으로 `(utterance_pk, similarity)`만 돌려준다(코사인 유사도). 문장은 돌려주지 않고, 화면은 번호로 원문을 따로 읽는다. 기본 20개, 최대 30개. 호출한 사용자의 권한으로 실행되어(RLS 적용) 내 발언만 찾는다. 벡터 색인(HNSW)은 없다: 발언이 수천 개를 넘으면 만든다.
@@ -246,3 +251,9 @@ where r.status = 'ok' order by r.created_at desc, score desc;
 3. `anon` 행이 없고, `authenticated`는 `utterance_embeddings`가 `SELECT`·`INSERT`·`DELETE`, `search_runs`가 `SELECT`·`INSERT`·`UPDATE`
 4. `search_runs`의 수정 가능한 열이 결과 열 15개뿐(`owner_id`, `created_at`, `prompt_version`, `model` 없음)
 5. 트리거 `search_runs_limit`, `search_runs_lock`과 함수 `match_utterances`가 있음
+
+`0005_save_transcript.sql`:
+
+1. 함수 `save_transcript`가 있고 `security_definer = false`
+2. 실행 권한: `anon` = false, `authenticated` = true
+3. 파일 맨 아래의 종합 확인(항상 오류로 끝나고 아무것도 저장하지 않는다)이 "잘못된 호출: 코드=23514 남은 전사본=0", "정상 호출: 전사본=1 발언=2"를 돌려줌
