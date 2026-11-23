@@ -52,6 +52,7 @@ export function ReportBar({ insights, transcriptCount, analyzedAt }: { insights:
           {status}
         </p>
       </div>
+      <p className="mt-3 text-sm text-fg-2">리포트에는 원문 인용이 그대로 들어가요. 공유하기 전에 이름 같은 개인정보가 없는지 확인해 주세요.</p>
     </section>
   );
 }

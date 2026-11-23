@@ -63,8 +63,11 @@ export function buildReport({
 
   withQuotes.forEach(({ insight, cited }, i) => {
     const labels = [...new Set(cited.map((c) => c.utterance.label))].sort();
-    out.push(`## ${i + 1}. ${esc(insight.title)}`, esc(insight.summary), `참가자 ${labels.length}명의 발언을 근거로 달았어요 (${labels.join(", ")})`);
-    for (const c of pickQuotes(cited)) out.push(`> “${esc(c.utterance.text)}” — 참가자 ${c.utterance.label} · ${c.utterance.id}`);
+    const picked = pickQuotes(cited);
+    // 인용이 근거 전체보다 적으면 알린다: 요약에는 있는데 인용에는 안 보이는 내용이 있을 수 있다
+    const more = picked.length < cited.length ? ` · 근거 ${cited.length}개 중 ${picked.length}개를 실었어요` : "";
+    out.push(`## ${i + 1}. ${esc(insight.title)}`, esc(insight.summary), `참가자 ${labels.length}명의 발언을 근거로 달았어요 (${labels.join(", ")})${more}`);
+    for (const c of picked) out.push(`> “${esc(c.utterance.text)}” — 참가자 ${c.utterance.label} · ${c.utterance.id}`);
   });
 
   if (without.length > 0) {
