@@ -145,3 +145,33 @@ export async function remainingAnalyses(db: SupabaseClient): Promise<number> {
   if (error) throw new Error(`분석 기록을 불러오지 못했습니다(${error.code}).`);
   return Math.max(0, DAILY_ANALYSES - (count ?? 0));
 }
+
+// ───────────── 검색 · 찾기 ─────────────
+
+export const RETRIEVE_COUNT = 30; // 한 번에 가져오는 발언 수. DB 함수 match_utterances의 상한(30)과 같다
+
+// 지금 모델로 임베딩이 아직 없는 참가자 발언. 진행자 발언은 임베딩하지 않는다.
+export async function utterancesToEmbed(db: SupabaseClient, model: string): Promise<{ pk: string; text: string }[]> {
+  const [people, done] = await Promise.all([
+    db.from("utterances").select("id, text").eq("speaker_role", "participant"),
+    db.from("utterance_embeddings").select("utterance_pk").eq("model", model),
+  ]);
+  if (people.error) throw new Error(`발언을 불러오지 못했습니다(${people.error.code}).`);
+  if (done.error) throw new Error(`임베딩을 불러오지 못했습니다(${done.error.code}).`);
+  const have = new Set(done.data.map((r) => r.utterance_pk as string));
+  return people.data.filter((u) => !have.has(u.id)).map((u) => ({ pk: u.id as string, text: u.text as string }));
+}
+
+export async function saveEmbeddings(db: SupabaseClient, model: string, rows: { pk: string; vector: number[] }[]) {
+  const { error } = await db
+    .from("utterance_embeddings")
+    .upsert(rows.map((r) => ({ utterance_pk: r.pk, model, embedding: r.vector })), { onConflict: "utterance_pk", ignoreDuplicates: true });
+  if (error) throw new Error(`임베딩을 저장하지 못했습니다(${error.code}).`);
+}
+
+// 질문 벡터와 가까운 참가자 발언의 행 번호와 유사도, 가까운 순.
+export async function matchUtterances(db: SupabaseClient, vector: number[], model: string): Promise<{ pk: string; similarity: number }[]> {
+  const { data, error } = await db.rpc("match_utterances", { query_embedding: vector, p_model: model, match_count: RETRIEVE_COUNT });
+  if (error) throw new Error(`비슷한 발언을 찾지 못했습니다(${error.code}).`);
+  return (data as { utterance_pk: string; similarity: number }[]).map((r) => ({ pk: r.utterance_pk, similarity: r.similarity }));
+}

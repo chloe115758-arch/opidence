@@ -25,3 +25,14 @@ export function mockClusters(transcripts: Transcript[]) {
     outputTokens: null,
   };
 }
+
+// MOCK_AI=1일 때 OpenAI 대신 쓰는 가짜 임베딩. 글이 같으면 벡터가 같고 글이 다르면 벡터가 다르다. 뜻은 담지 않는다(찾은 순서가 의미 없다).
+// 차원 1536은 db의 vector(1536)과 같아야 한다.
+export function mockEmbedding(text: string): number[] {
+  let h = 2166136261;
+  for (const ch of text) h = Math.imul(h ^ ch.codePointAt(0)!, 16777619) >>> 0;
+  return Array.from({ length: 1536 }, () => {
+    h = (Math.imul(h, 1664525) + 1013904223) >>> 0;
+    return h / 2 ** 31 - 1;
+  });
+}

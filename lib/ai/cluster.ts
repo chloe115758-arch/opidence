@@ -8,7 +8,7 @@ import { mockClusters } from "./fixture";
 
 // 키와 모델 이름은 환경 변수에서만 읽는다. 코드에 모델 이름을 쓰지 않는다.
 // MOCK_AI=1이면 키 없이도 가짜 응답을 쓴다. 배포(production)에서는 무시한다.
-const mocking = () => process.env.MOCK_AI === "1" && process.env.NODE_ENV !== "production";
+export const mocking = () => process.env.MOCK_AI === "1" && process.env.NODE_ENV !== "production";
 
 export function aiConfig() {
   if (mocking()) return { apiKey: "mock", model: "mock" };
