@@ -1,4 +1,4 @@
-import type { Transcript } from "../types";
+import type { Transcript, Utterance } from "../types";
 
 // MOCK_AI=1일 때 OpenAI 대신 돌려주는 가짜 응답. "근거 없음" 경로(없는 ID, 진행자 ID, 변형 ID, ID 없음)를 일부러 만든다.
 // ID는 사용자의 전사본에서 골라서, 어떤 전사본이든 같은 구성으로 나온다.
@@ -35,4 +35,36 @@ export function mockEmbedding(text: string): number[] {
     h = (Math.imul(h, 1664525) + 1013904223) >>> 0;
     return h / 2 ** 31 - 1;
   });
+}
+
+// MOCK_AI=1일 때 검색 · 찾기가 OpenAI 대신 돌려주는 가짜 응답. 사용성 테스트 재료다(docs/plan.md "의도적 오류 데이터").
+// 샘플 8건이 올라와 있으면 아래 세 문장을 그대로 돌려준다. 아니면 사용자의 전사본에서 번호를 골라 같은 구성으로 만든다.
+// shortcut: 샘플 여부는 라벨 A~H와 다섯 발언의 화자만 본다. 같은 번호·화자를 가진 다른 전사본이면 잘못 알아본다(개발 전용이라 둔다).
+export function mockAnswer(all: Utterance[]) {
+  const byId = new Map(all.map((u) => [u.id, u]));
+  const labels = new Set(all.map((u) => u.id.split("-")[0]));
+  const isSample =
+    [..."ABCDEFGH"].every((l) => labels.has(l)) &&
+    ["A-08", "H-08", "C-08", "C-10"].every((id) => byId.get(id)?.role === "participant") &&
+    byId.get("A-07")?.role === "moderator";
+
+  const sentences = isSample
+    ? [
+        // C-08은 실제 참가자 발언이지만 뜻이 반대다("반납은 쉬워요… 불만 없어요"). 사람이 읽어야 알 수 있는 오류.
+        { text: "반납이 제대로 됐는지 확신하기 어렵다는 말이 여러 번 나왔습니다.", utterance_ids: ["A-08", "H-08", "C-08"] },
+        // A-07은 진행자 발언, Z-99는 없는 번호. 코드가 걸러 낸다.
+        { text: "반납이 처리되지 않아 추가 요금이 나온 경우도 있었습니다.", utterance_ids: ["C-10", "A-07", "Z-99"] },
+        // 근거가 없는 문장. 기본으로 숨겨져야 한다.
+        { text: "대부분의 참가자가 앱 사용을 그만두었습니다.", utterance_ids: [] },
+      ]
+    : (() => {
+        const people = all.filter((u) => u.role === "participant").map((u) => u.id);
+        const mod = all.find((u) => u.role === "moderator")?.id;
+        return [
+          { text: "(가짜 응답) 참가자 발언만 근거로 단 문장입니다.", utterance_ids: people.slice(0, 3) },
+          { text: "(가짜 응답) 정상 1개, 진행자 번호 1개, 없는 번호 1개를 단 문장입니다.", utterance_ids: [people[3], mod, "Z-99"].filter((x): x is string => !!x) },
+          { text: "(가짜 응답) 근거가 없는 문장입니다.", utterance_ids: [] },
+        ];
+      })();
+  return { output: { sentences }, inputTokens: null, outputTokens: null };
 }
