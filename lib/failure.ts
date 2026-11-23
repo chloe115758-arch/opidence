@@ -1,6 +1,8 @@
 // 검색 · 찾기와 주제 분류가 실패했을 때 사용자에게 보여 줄 문구와 "다시 시도" 여부.
-// 서버 액션과 화면이 함께 쓰고, 문구 규칙은 docs/plan.md "6-4"의 표(A·B)를 따른다.
-// 다른 lib 파일을 불러오지 않는 순수 함수라서 테스트에서 그대로 부를 수 있다.
+// 서버 액션이 쓰고, 문구 규칙은 docs/plan.md "6-4"의 표(A·B)를 따른다.
+// 서버 전용이다: 화면(브라우저)은 이 파일을 불러오지 않는다(개발 환경 안내의 키·모델 이름 글자가 번들에 실리므로). 연결 끊김 문구는 lib/network-failure.ts에 있다.
+
+import { networkFailure } from "./network-failure.ts";
 
 export type Task = "search" | "analysis"; // 검색 · 찾기 / 주제 분류의 분석
 export type Stage = "embed" | "answer"; // 검색 중 어느 단계에서 실패했나(모델 이름 오류 안내가 달라진다)
@@ -56,13 +58,12 @@ const COUNTED = "이번 시도는 오늘 횟수에 포함돼요.";
 
 export function failure(kind: FailureKind, { task, dev, stage = "answer", max, existing = false }: Context): Failure {
   const search = task === "search";
-  const couldNot = search ? "찾지 못했어요" : "분석하지 못했어요"; // ~하지 못했어요
   const cannotNow = search ? "찾을 수 없어요" : "분석할 수 없어요"; // ~할 수 없어요
   const make = (message: string, retry: boolean, counted: boolean | null): Failure => ({ kind, message, retry, counted });
 
   switch (kind) {
     case "network":
-      return make(`연결이 끊겨서 ${couldNot}. 인터넷 연결을 확인하고 다시 시도해 주세요.`, true, null);
+      return networkFailure(task);
     case "transient":
       return make(`지금은 ${cannotNow}. 잠시 뒤 다시 시도해 주세요. ${NOT_COUNTED}`, true, false);
 

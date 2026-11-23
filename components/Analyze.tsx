@@ -3,7 +3,7 @@
 import { Button, SectionMessage } from "@montage-ui/core";
 import { useEffect, useState, useTransition } from "react";
 import { analyze } from "@/app/insights/actions";
-import { failure } from "@/lib/failure";
+import { networkFailure } from "@/lib/network-failure";
 
 // 이 초를 넘으면 "조금 더 걸리고 있어요"로 바꾼다.
 const SLOW_AFTER = 30;
@@ -31,7 +31,7 @@ export function Analyze({ remaining, disabled, hasInsights }: { remaining: numbe
         const result = await analyze();
         if (!result.ok) setFailed({ message: result.message, retry: result.retry });
       } catch {
-        const f = failure("network", { task: "analysis", dev: false });
+        const f = networkFailure("analysis");
         setFailed({ message: f.message, retry: f.retry });
       }
     });

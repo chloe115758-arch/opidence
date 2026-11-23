@@ -7,7 +7,7 @@ import { CiteLink } from "@/components/CiteLink";
 import { EXAMPLES } from "@/components/examples";
 import { Quote } from "@/components/Quote";
 import type { Checked } from "@/lib/evidence";
-import { failure } from "@/lib/failure";
+import { networkFailure } from "@/lib/network-failure";
 
 const MAX_QUESTION = 200; // lib/answer.ts의 MAX_QUESTION과 같다(서버가 다시 검사한다). 서버 전용 모듈이 아니어도 클라이언트 번들에 넣지 않으려고 따로 둔다.
 const SLOW_AFTER = 30; // 이 초를 넘으면 "조금 더 걸리고 있어요"로 바꾼다.
@@ -37,7 +37,7 @@ export function Search({ remaining, disabled, pendingIndex, view }: { remaining:
         setResult(await ask(q));
       } catch {
         // 서버에 닿지 못한 경우(연결 끊김). 입력한 질문은 그대로 남아 있다.
-        const f = failure("network", { task: "search", dev: false });
+        const f = networkFailure("search");
         setResult({ ok: false, message: f.message, retry: f.retry });
       }
     });
