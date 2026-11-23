@@ -129,7 +129,7 @@ export function UploadForm({ remaining }: { remaining: number }) {
       try {
         const inputs = await Promise.all(files.map(read));
         const result = await runBatch(inputs, remaining, {
-          parse: parseTranscript, // 서버로 보내기 전에 같은 검사를 먼저 한다. 서버도 다시 검사한다.
+          parse: (raw, roles) => parseTranscript(raw, "A", roles), // 서버로 보내기 전에 같은 검사를 먼저 한다. 서버도 다시 검사한다.
           save: upload,
           onProgress: (current, total, name) => setProgress({ current, total, name }),
         });
