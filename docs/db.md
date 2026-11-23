@@ -7,7 +7,7 @@ Supabase(Postgres). SQL은 `supabase/migrations/`에 있고, 구조를 바꾸면
 | `0001_init.sql` | 테이블 4개, 건수 제한, 권한, RLS | SQL Editor에서 직접 실행 |
 | `0002_analysis.sql` | 분석 기록 테이블, 하루 10회 제한, 표시 순서 열, 인사이트를 한 번에 교체하는 함수 | SQL Editor에서 직접 실행 |
 | `0003_analysis_limit.sql` | 하루 횟수에서 `api_error`를 빼고, 끝난 분석 기록을 고칠 수 없게 잠금 | SQL Editor에서 직접 실행 |
-| `0004_vector.sql` (5단계 예정) | pgvector, `utterances.embedding`, `match_utterances` | — |
+| `0004_search.sql` | pgvector 확장, 발언 임베딩 표, 비슷한 발언 찾기 함수, 검색 기록 표와 하루 30회 제한 | SQL Editor에서 직접 실행 (실행 전) |
 
 ## 관계
 
@@ -15,7 +15,9 @@ Supabase(Postgres). SQL은 `supabase/migrations/`에 있고, 구조를 바꾸면
 auth.users ─┬─< transcripts ──< utterances
             │                      ▲
             ├─< insights ──< evidence (verified일 때만 발언 1개를 가리킨다)
-            └─< analysis_runs (분석 한 번 = 1행. 다시 분석해도 지워지지 않는다)
+            ├─< analysis_runs (분석 한 번 = 1행. 다시 분석해도 지워지지 않는다)
+            └─< search_runs (검색 한 번 = 1행)
+utterances ──< utterance_embeddings (참가자 발언만. 발언 1개 = 임베딩 1개)
 ```
 
 모든 테이블에 `owner_id`가 있고, 기본값은 요청한 사용자(`auth.uid()`)다. 사용자는 Supabase 익명 로그인으로 브라우저마다 하나씩 생긴다.
@@ -52,7 +54,7 @@ auth.users ─┬─< transcripts ──< utterances
 - `unique (transcript_id, seq)`: 순번이 겹치지 않는다.
 - 수정 권한이 없어 저장된 원문은 바뀌지 않는다.
 
-### insights — 인사이트 (주제 묶음 1개 = 1행)
+### insights — 인사이트 (묶음 1개 = 1행)
 
 | 열 | 형식 | 설명 |
 | --- | --- | --- |
@@ -129,7 +131,66 @@ from analysis_runs r, jsonb_array_elements(r.dropped) d order by r.created_at de
 
 SQL Editor는 관리자 권한이라 모든 사용자의 기록이 함께 나온다.
 
+### utterance_embeddings — 발언 임베딩 (참가자 발언 1개 = 1행)
+
+"검색 · 찾기"가 처음 실행될 때 서버가 임베딩이 없는 참가자 발언만 만들어 넣는다. `utterances`에 update 권한이 없어(원문이 바뀌지 않는다는 보장) `utterances.embedding` 열 대신 별도 표로 둔다(2026-11-21 결정).
+
+| 열 | 형식 | 설명 |
+| --- | --- | --- |
+| `utterance_pk` | uuid, PK → `utterances` | 발언을 지우면(전사본을 지우면) 함께 지워진다 |
+| `owner_id` | uuid | |
+| `speaker_role` | text | 항상 `participant` |
+| `model` | text | 만들 때의 `OPENAI_EMBEDDING_MODEL` 값 |
+| `embedding` | vector(1536) | `text-embedding-3-small` 기준. 차원이 다른 모델로 바꾸면 이 열과 `match_utterances`의 1536을 고치고 다시 만든다 |
+| `created_at` | timestamptz | |
+
+- `(utterance_pk, owner_id, speaker_role)`가 `utterances`를 참조하므로 진행자 발언·남의 발언·없는 발언의 임베딩은 DB가 거부한다(`evidence`와 같은 방식). 진행자 발언은 검색되지 않는다.
+- 조회·추가·삭제만 열려 있다. 모델을 바꾸면 지우고 다시 만든다. `match_utterances`는 지금 모델로 만든 것만 찾는다.
+
+### search_runs — 검색 기록 ("찾기" 한 번 = 1행)
+
+AI를 부르기 직전에 `running`으로 넣고, 끝나면 결과를 채운다. **질문과 답변 문장은 저장하지 않는다.** 횟수·토큰·시간·발언 번호와 점수만 남긴다.
+
+| 열 | 형식 | 설명 |
+| --- | --- | --- |
+| `id`, `owner_id`, `created_at` | | `created_at`은 넣는 순간의 시각으로 DB가 덮어쓴다 |
+| `status` | text | `running`, `ok`(끝남. "찾지 못했습니다"도 정상), `format_error`(답변 형식이 틀려 쓰지 않음), `api_error`(OpenAI 호출 실패, 임베딩 또는 답변) |
+| `prompt_version` | text | `prompts/근거.md`의 버전 |
+| `model`, `embedding_model` | text | `OPENAI_MODEL`, `OPENAI_EMBEDDING_MODEL`의 값 |
+| `embed_tokens` | integer | 질문 임베딩 + 이번에 새로 만든 발언 임베딩의 토큰 수 |
+| `input_tokens`, `output_tokens` | integer | 답변 생성의 실제 토큰 수 |
+| `duration_ms` | integer | 걸린 시간 |
+| `indexed_count` | integer | 이번 검색에서 새로 임베딩한 발언 수. 첫 검색이면 0보다 크다 |
+| `retrieved_count` | integer | 가져온 발언 수(기본 20) |
+| `hits` | jsonb | 가져온 발언의 번호와 유사도, 가까운 순. `[{"id":"A-04","score":0.4312}]`. 문장은 없다 |
+| `sentence_count` | integer | AI가 쓴 요약 문장 수 |
+| `id_total`, `id_verified`, `id_not_found`, `id_moderator` | integer | 주제 분류의 `analysis_runs`와 같은 뜻 |
+| `cited_ids` | text[] | 요약이 인용한, 원문 대조를 통과한 발언 번호 |
+| `dropped` | jsonb | 탈락한 번호와 이유. `[{"id":"Z-99","reason":"not_found"}]` |
+
+- `hits`와 `cited_ids`는 4일차에 "정답을 아는 질문"으로 유사도 기준선을 정할 때 쓴다. **기준선은 아직 정하지 않았고, 기록만 남긴다.**
+- 트리거 `search_runs_limit`: 사용자당 하루 30회(한국 시간 자정 기준). `api_error`는 세지 않는다. 이유와 한계는 `analysis_runs`와 같다.
+- 트리거 `search_runs_lock`: `running`인 기록만 고칠 수 있다. 삭제 권한이 없고 수정은 결과 열 15개뿐이다.
+
+조회 예:
+
+```sql
+-- 검색별 시간·토큰·근거 일치율. indexed_count > 0인 행이 첫 검색(색인 포함)이다
+select created_at, status, indexed_count, retrieved_count, sentence_count,
+       id_verified, id_total, embed_tokens, input_tokens, output_tokens, round(duration_ms / 1000.0, 1) as sec
+from search_runs order by created_at desc;
+
+-- 가져온 발언 중 요약이 실제로 인용한 것과 점수 (유사도 기준선을 정할 때)
+select r.created_at, h ->> 'id' as id, (h ->> 'score')::numeric as score, (h ->> 'id') = any(r.cited_ids) as cited
+from search_runs r, jsonb_array_elements(r.hits) h
+where r.status = 'ok' order by r.created_at desc, score desc;
+```
+
 ## 함수
+
+### match_utterances(query_embedding, p_model, match_count)
+
+질문 벡터와 가까운 참가자 발언을 가까운 순으로 `(utterance_pk, similarity)`만 돌려준다(코사인 유사도). 문장은 돌려주지 않고, 화면은 번호로 원문을 따로 읽는다. 기본 20개, 최대 30개. 호출한 사용자의 권한으로 실행되어(RLS 적용) 내 발언만 찾는다. 벡터 색인(HNSW)은 없다: 발언이 수천 개를 넘으면 만든다.
 
 ### replace_insights(p_clusters jsonb)
 
@@ -140,10 +201,10 @@ SQL Editor는 관리자 권한이라 모든 사용자의 기록이 함께 나온
 | 역할 | 누구 | 할 수 있는 것 |
 | --- | --- | --- |
 | `anon` | 로그인하지 않은 요청 | 없음. 권한도 정책도 없다 |
-| `authenticated` | 익명 로그인한 사용자 | 자기 행의 조회·추가·삭제. 수정은 없다. `analysis_runs`만 예외: 조회·추가와 결과 열 수정, 삭제 없음 |
+| `authenticated` | 익명 로그인한 사용자 | 자기 행의 조회·추가·삭제. 수정은 없다. `analysis_runs`·`search_runs`만 예외: 조회·추가와 결과 열 수정, 삭제 없음 |
 | service role | — | 이 프로젝트에서는 쓰지 않는다 |
 
-다섯 테이블 모두 RLS가 켜져 있고 정책은 테이블마다 하나다.
+일곱 테이블 모두 RLS가 켜져 있고 정책은 테이블마다 하나다.
 
 | 테이블 | 정책 | 조건 | 막는 것 |
 | --- | --- | --- | --- |
@@ -152,6 +213,8 @@ SQL Editor는 관리자 권한이라 모든 사용자의 기록이 함께 나온
 | `insights` | 내 인사이트만 | 같음 | 다른 사용자의 인사이트 조회·삭제, 남의 이름으로 추가 |
 | `evidence` | 내 근거만 | 같음 | 다른 사용자의 근거 조회·삭제, 남의 이름으로 추가 |
 | `analysis_runs` | 내 분석 기록만 | 같음 | 다른 사용자의 분석 기록 조회·수정, 남의 이름으로 추가 |
+| `utterance_embeddings` | 내 임베딩만 | 같음 | 다른 사용자의 임베딩 조회·삭제, 남의 이름으로 추가 |
+| `search_runs` | 내 검색 기록만 | 같음 | 다른 사용자의 검색 기록 조회·수정, 남의 이름으로 추가 |
 
 - 서버 코드도 사용자 세션으로 접근하므로 같은 정책을 따른다.
 - 공개 키(publishable)는 브라우저에 노출되지만, 이 키로 API를 직접 호출해도 위 정책과 제약(건수 제한, 글자 수 제한, 진행자 근거 금지)을 넘지 못한다.
@@ -175,3 +238,11 @@ SQL Editor는 관리자 권한이라 모든 사용자의 기록이 함께 나온
 
 1. 트리거가 `analysis_runs_limit`, `analysis_runs_lock` 2개
 2. 오늘 기록에서 `api_error`인 행의 `counted`가 `false`
+
+`0004_search.sql`:
+
+1. `vector` 확장이 켜져 있음
+2. `utterance_embeddings`, `search_runs`의 `rowsecurity = true`
+3. `anon` 행이 없고, `authenticated`는 `utterance_embeddings`가 `SELECT`·`INSERT`·`DELETE`, `search_runs`가 `SELECT`·`INSERT`·`UPDATE`
+4. `search_runs`의 수정 가능한 열이 결과 열 15개뿐(`owner_id`, `created_at`, `prompt_version`, `model` 없음)
+5. 트리거 `search_runs_limit`, `search_runs_lock`과 함수 `match_utterances`가 있음
