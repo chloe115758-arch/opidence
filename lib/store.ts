@@ -175,3 +175,45 @@ export async function matchUtterances(db: SupabaseClient, vector: number[], mode
   if (error) throw new Error(`비슷한 발언을 찾지 못했습니다(${error.code}).`);
   return (data as { utterance_pk: string; similarity: number }[]).map((r) => ({ pk: r.utterance_pk, similarity: r.similarity }));
 }
+
+export const DAILY_SEARCHES = 30;
+
+const toUtterance = (r: { utterance_id: string; seq: number; speaker_role: Utterance["role"]; text: string }): Utterance => ({
+  id: r.utterance_id,
+  label: r.utterance_id.split("-")[0],
+  seq: r.seq,
+  role: r.speaker_role,
+  text: r.text,
+});
+
+// 행 번호(pk)로 발언을 읽는다. 돌려주는 순서는 pks와 같다(가까운 순을 지킨다).
+export async function utterancesByPk(db: SupabaseClient, pks: string[]): Promise<Utterance[]> {
+  if (pks.length === 0) return [];
+  const { data, error } = await db.from("utterances").select("id, utterance_id, seq, speaker_role, text").in("id", pks);
+  if (error) throw new Error(`발언을 불러오지 못했습니다(${error.code}).`);
+  const byPk = new Map(data.map((r) => [r.id as string, toUtterance(r)]));
+  if (byPk.size !== new Set(pks).size) throw new Error("가져온 발언 중 일부를 읽지 못했습니다."); // 순서를 맞춰 쓰는 쪽이 어긋나지 않게 한다
+  return pks.map((pk) => byPk.get(pk)!);
+}
+
+// 발언 ID(A-04)로 원문을 읽는다. 정확히 일치하는 ID만 찾고, 없는 ID는 결과에 없다.
+export async function utterancesById(db: SupabaseClient, ids: string[]): Promise<Utterance[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await db.from("utterances").select("utterance_id, seq, speaker_role, text").in("utterance_id", ids);
+  if (error) throw new Error(`발언을 불러오지 못했습니다(${error.code}).`);
+  return data.map(toUtterance);
+}
+
+// 오늘(한국 시간 자정 기준) 남은 검색 횟수. 실제 제한은 DB 트리거가 건다. 이 값은 화면 표시용이다.
+export async function remainingSearches(db: SupabaseClient): Promise<number> {
+  if (!(await signedIn(db))) return DAILY_SEARCHES;
+  const today = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
+  const { count, error } = await db
+    .from("search_runs")
+    .select("id", { count: "exact" })
+    .gte("created_at", `${today}T00:00:00+09:00`)
+    .neq("status", "api_error") // DB 트리거와 같은 기준
+    .limit(1);
+  if (error) throw new Error(`검색 기록을 불러오지 못했습니다(${error.code}).`);
+  return Math.max(0, DAILY_SEARCHES - (count ?? 0));
+}
